@@ -5,10 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e8d026e4-1216-47cb-bb9d-6f7e9b819250" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Ztudy/api/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Ztudy/Ztudy/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/Ztudy/Ztudy/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Ztudy/api/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/Ztudy/api/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Ztudy/api/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Ztudy/api/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/Ztudy/api/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,7 +63,7 @@
       <option name="presentableId" value="Default" />
       <updated>1738940033143</updated>
       <workItem from="1738940034108" duration="5740000" />
-      <workItem from="1739034907597" duration="441000" />
+      <workItem from="1739034907597" duration="804000" />
     </task>
     <servers />
   </component>
