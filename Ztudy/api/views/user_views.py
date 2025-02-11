@@ -1,10 +1,10 @@
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, filters
-from rest_framework.response import Response
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import User
-from .serializers import UserSerializer
+from ..models import User
+from ..pagination import CustomPagination
+from ..serializers import UserSerializer
+
 
 class UserListCreate(generics.ListCreateAPIView):
     queryset = User.objects.all()
@@ -13,6 +13,7 @@ class UserListCreate(generics.ListCreateAPIView):
     filterset_fields = ['username', 'email']
     search_fields = ['username', 'email']
     ordering_fields = ['id', 'username']
+    pagination_class = CustomPagination
 
 class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
