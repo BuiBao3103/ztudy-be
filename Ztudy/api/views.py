@@ -1,34 +1,20 @@
-from django.shortcuts import render
-from rest_framework import generics, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, filters
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import status
 
 from .models import User
 from .serializers import UserSerializer
 
-# Create your views here.
 class UserListCreate(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
-    def delete(self, request, *args, **kwargs):
-        User.objects.all().delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['username', 'email']
+    search_fields = ['username', 'email']
+    ordering_fields = ['id', 'username']
 
 class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
-
-class UserList(APIView):
-    def get(self, request, format=None):
-        username = request.query_params.get('username', None)
-        if username is not None:
-            user = User.objects.filter(username=username)
-        else:
-            user = User.objects.all()
-
-        serializer = UserSerializer(user, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
