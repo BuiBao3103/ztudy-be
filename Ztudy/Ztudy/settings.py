@@ -19,9 +19,15 @@ env_path = Path(__file__).resolve().parent.parent / '.env'
 if not env_path.exists():
     raise FileNotFoundError(f".env file is missing. Please create the .env file in the root directory.")
 
+load_dotenv(dotenv_path=env_path)
+
+required_env_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
+
+for var in required_env_vars:
+    if not os.getenv(var):
+        raise ValueError(f"Missing required environment variable: {var}")
 
 
-load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
 DEBUG = os.getenv("DEBUG", "False") == "True"

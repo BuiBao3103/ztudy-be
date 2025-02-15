@@ -5,7 +5,6 @@ from ..models import User
 from ..pagination import CustomPagination
 from ..serializers import UserSerializer
 
-
 class UserListCreate(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -14,6 +13,9 @@ class UserListCreate(generics.ListCreateAPIView):
     search_fields = ['username', 'email']
     ordering_fields = ['id', 'username']
     pagination_class = CustomPagination
+
+    def perform_create(self, serializer):
+        user = serializer.save()
 
 class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()

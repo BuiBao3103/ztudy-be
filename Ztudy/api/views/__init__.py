@@ -1,1 +1,2 @@
 from .user_views import UserListCreate, UserRetrieveUpdateDestroy
+from .motivational_quote_views import MotivationalQuoteListCreate, MotivationalQuoteRetrieveUpdateDestroy
