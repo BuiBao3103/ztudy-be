@@ -1,8 +1,9 @@
+from allauth.account.views import ConfirmEmailView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from django.urls import path, include
+from django.urls import path, include, re_path
 from . import views
-
+from django.contrib import admin
 # Set up Swagger Schema View
 schema_view = get_schema_view(
     openapi.Info(
@@ -17,14 +18,20 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path('users/', views.UserListCreate.as_view(), name='user-view-create'),
     path('users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
 
     path('motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
     path('motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
 
-    path("api/v1/auth/", include("dj_rest_auth.urls")),
-
+    path("auth/", include("dj_rest_auth.urls")),
+    re_path(
+        "^auth/registration/account-confirm-email/(?P<key>[-:\w]+)/$",
+        ConfirmEmailView.as_view(),
+        name="account_confirm_email",
+    ),
+    path('auth/registration/', include('dj_rest_auth.registration.urls')),
     # Swagger URL
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
 ]
