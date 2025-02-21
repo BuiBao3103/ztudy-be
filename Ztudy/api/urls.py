@@ -23,6 +23,8 @@ urlpatterns = [
     path('motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
     path('motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
 
+    path("api/v1/auth/", include("dj_rest_auth.urls")),
+
     # Swagger URL
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
 ]

@@ -54,4 +54,3 @@ drf_example
 
 # Ignore .env file
 .env
-!/Ztudy/.env

@@ -1,6 +1,6 @@
 from django.db import models
 from softdelete.models import SoftDeleteModel
-
+from django.contrib.auth.models import AbstractUser, UserManager
 
 class SessionGoalsStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'
@@ -43,13 +43,12 @@ class SessionGoal(models.Model):
         return self.goal
 
 
-class User(SoftDeleteModel):
-    username = models.CharField(max_length=255, unique=True)
+class User(SoftDeleteModel, AbstractUser):
     email = models.EmailField(unique=True)
-    hash_password = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = UserManager()
     def __str__(self):
         return self.username
 
