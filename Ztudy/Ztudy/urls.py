@@ -20,5 +20,5 @@ from django.shortcuts import redirect
 
 urlpatterns = [
     path('', lambda request: redirect('/api/v1/swagger/')),
-    path('api/v1/', include('api.urls')),
+    path('', include('api.urls')),
 ]
