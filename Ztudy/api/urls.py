@@ -27,12 +27,16 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("login/", views.LoginPage.as_view(), name="login"),
 
-        path('users/', views.UserListCreate.as_view(), name='user-view-create'),
+    path('users/', views.UserListCreate.as_view(), name='user-view-create'),
     path('users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
 
+
+    # Motivational Quote URLs
     path('motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
     path('motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
+    path('motivational-quotes/random-quote/', views.RandomMotivationalQuoteView.as_view(), name='random-quote'),
 
+    # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),
     path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),

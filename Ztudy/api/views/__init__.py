@@ -1,3 +1,3 @@
 from .user_views import UserListCreate, UserRetrieveUpdateDestroy
-from .motivational_quote_views import MotivationalQuoteListCreate, MotivationalQuoteRetrieveUpdateDestroy
+from .motivational_quote_views import MotivationalQuoteListCreate, MotivationalQuoteRetrieveUpdateDestroy, RandomMotivationalQuoteView
 from .google_views import GoogleLogin, GoogleLoginCallback, LoginPage
