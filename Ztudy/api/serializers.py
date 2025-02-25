@@ -5,8 +5,10 @@ from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, Mot
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = BackgroundVideoType
-        fields = '__all__'
-        read_only_fields = ['deleted_at', 'restored_at', 'transaction_id']
+        # fields = '__all__'
+        exclude = ['deleted_at', 'restored_at', 'transaction_id']
+
+
 
 
 class BackgroundVideoSerializer(FlexFieldsModelSerializer):

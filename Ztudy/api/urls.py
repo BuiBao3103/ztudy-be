@@ -1,16 +1,15 @@
 # Ztudy/api/urls.py
 
 from allauth.account.views import ConfirmEmailView
-from django.contrib.admin.templatetags import admin_urls
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 from django.urls import path, include, re_path
-from rest_framework import permissions
 
 from . import views
 from django.contrib import admin
 
 # Set up Swagger Schema View
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
 schema_view = get_schema_view(
     openapi.Info(
         title="User API",
@@ -27,20 +26,20 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("login/", views.LoginPage.as_view(), name="login"),
 
-    path('users/', views.UserListCreate.as_view(), name='user-view-create'),
-    path('users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
+    path('api/v1/users/', views.UserListCreate.as_view(), name='user-view-create'),
+    path('api/v1/users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
 
 
     # Motivational Quote URLs
-    path('motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
-    path('motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
-    path('motivational-quotes/random-quote/', views.RandomMotivationalQuoteView.as_view(), name='random-quote'),
+    path('api/v1/motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
+    path('api/v1/motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
+    path('api/v1/motivational-quotes/random-quote/', views.RandomMotivationalQuoteView.as_view(), name='random-quote'),
 
     # Background Video URLs
-    path('background-videos/', views.BackgroundVideoListCreate.as_view(), name='background-video-view-create'),
-    path('background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(), name='background-video-view-detail'),
-    path('background-video-types/', views.BackgroundVideoTypeListCreate.as_view(), name='background-video-type-view-create'),
-    path('background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(), name='background-video-type-view-detail'),
+    path('api/v1/background-videos/', views.BackgroundVideoListCreate.as_view(), name='background-video-view-create'),
+    path('api/v1/background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(), name='background-video-view-detail'),
+    path('api/v1/background-video-types/', views.BackgroundVideoTypeListCreate.as_view(), name='background-video-type-view-create'),
+    path('api/v1/background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(), name='background-video-type-view-detail'),
 
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
