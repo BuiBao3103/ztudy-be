@@ -1,19 +1,23 @@
+from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote
-
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = BackgroundVideoType
         fields = '__all__'
+        read_only_fields = ['deleted_at', 'restored_at', 'transaction_id']
 
 
-class BackgroundVideoSerializer(serializers.ModelSerializer):
-    type = BackgroundVideoTypeSerializer()  # Nested serializer for type
+class BackgroundVideoSerializer(FlexFieldsModelSerializer):
 
     class Meta:
         model = BackgroundVideo
         fields = '__all__'
+        expandable_fields = {
+            'type': BackgroundVideoTypeSerializer
+        }
+
 
 
 class SessionGoalSerializer(serializers.ModelSerializer):

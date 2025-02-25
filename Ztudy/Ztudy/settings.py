@@ -125,6 +125,10 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'your_password'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'use_unicode': True,
+        },
     }
 }
 ACCESS_TOKEN_LIFETIME = int (os.getenv('ACCESS_TOKEN_LIFETIME', 1))

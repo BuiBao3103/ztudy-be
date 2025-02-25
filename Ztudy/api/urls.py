@@ -36,6 +36,12 @@ urlpatterns = [
     path('motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
     path('motivational-quotes/random-quote/', views.RandomMotivationalQuoteView.as_view(), name='random-quote'),
 
+    # Background Video URLs
+    path('background-videos/', views.BackgroundVideoListCreate.as_view(), name='background-video-view-create'),
+    path('background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(), name='background-video-view-detail'),
+    path('background-video-types/', views.BackgroundVideoTypeListCreate.as_view(), name='background-video-type-view-create'),
+    path('background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(), name='background-video-type-view-detail'),
+
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),
