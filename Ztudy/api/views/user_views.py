@@ -5,7 +5,7 @@ from ..models import User
 from ..pagination import CustomPagination
 from ..serializers import UserSerializer
 
-class UserListCreate(generics.ListCreateAPIView):
+class UserListCreate(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]

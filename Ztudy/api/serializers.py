@@ -8,9 +8,6 @@ class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
         # fields = '__all__'
         exclude = ['deleted_at', 'restored_at', 'transaction_id']
 
-
-
-
 class BackgroundVideoSerializer(FlexFieldsModelSerializer):
 
     class Meta:
@@ -20,23 +17,20 @@ class BackgroundVideoSerializer(FlexFieldsModelSerializer):
             'type': BackgroundVideoTypeSerializer
         }
 
+class UserSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = User
+        exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'is_active', 'groups', 'user_permissions']
 
-class SessionGoalSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # Display the related User's string representation
+class SessionGoalSerializer(FlexFieldsModelSerializer):
 
     class Meta:
         model = SessionGoal
         fields = '__all__'
-
-
-class UserSerializer(serializers.ModelSerializer):
-    goals = SessionGoalSerializer(many=True, read_only=True)  # Nested serializer for user's goals
-
-    class Meta:
-        model = User
-        fields = '__all__'
-
+        expandable_fields = {
+            'user': UserSerializer
+        }
 
 class MotivationalQuoteSerializer(serializers.ModelSerializer):
     class Meta:
