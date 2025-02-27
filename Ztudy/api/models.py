@@ -64,7 +64,7 @@ class MotivationalQuote(models.Model):
 
 class Sound(models.Model):
     name = models.CharField(max_length=255)
-    url = models.URLField(max_length=255)
+    sound_file = models.FileField(upload_to='sounds/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -47,6 +47,7 @@ urlpatterns = [
 
     # Sound URLs
     path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
+    path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
 
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
