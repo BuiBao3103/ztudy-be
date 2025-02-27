@@ -24,7 +24,7 @@ This guide provides step-by-step instructions on how to set up and run a Django 
 cd path\to\your\project
 
 # Create a virtual environment
-python -m venv venv
+python -m venv .venv
 
 # Activate the virtual environment
 venv\Scripts\activate
