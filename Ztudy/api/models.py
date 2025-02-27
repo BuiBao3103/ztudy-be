@@ -62,6 +62,15 @@ class MotivationalQuote(models.Model):
     def __str__(self):
         return f'"{self.quote}" - {self.author}'
 
+class Sound(models.Model):
+    name = models.CharField(max_length=255)
+    url = models.URLField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
 # '1', 'Success is the sum of small efforts, repeated day in and day out.', 'Robert Collier', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
 # '2', 'The future belongs to those who believe in the beauty of their dreams.', 'Eleanor Roosevelt', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
 # '3', 'Don\'t watch the clock; do what it does. Keep going.', 'Sam Levenson', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'

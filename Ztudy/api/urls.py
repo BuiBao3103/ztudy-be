@@ -45,6 +45,9 @@ urlpatterns = [
     path('api/v1/session-goals/', views.SessionGoalListCreate.as_view(), name='session-goal-view-create'),
     path('api/v1/session-goals/<int:pk>/', views.SessionGoalRetrieveUpdateDestroy.as_view(), name='session-goal-view-detail'),
 
+    # Sound URLs
+    path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
+
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),

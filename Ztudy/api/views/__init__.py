@@ -3,3 +3,4 @@ from .motivational_quote_views import MotivationalQuoteListCreate, MotivationalQ
 from .google_views import GoogleLogin, GoogleLoginCallback, LoginPage
 from .background_video_views import BackgroundVideoListCreate, BackgroundVideoRetrieveUpdateDestroy, BackgroundVideoTypeListCreate, BackgroundVideoTypeRetrieveUpdateDestroy
 from .session_goal_views import SessionGoalListCreate, SessionGoalRetrieveUpdateDestroy
+from .sound_views import SoundList
