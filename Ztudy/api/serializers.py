@@ -1,7 +1,9 @@
+from allauth.account.models import EmailAddress
+from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant, Interest
-
+from django.core.exceptions import ValidationError
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -90,3 +92,9 @@ class AddUserInterestSerializer(serializers.Serializer):
         required=True,
         help_text="List of category IDs to add as interests"
     )
+
+class CustomRegisterSerializer(RegisterSerializer):
+    def validate_email(self, value):
+        if EmailAddress.objects.filter(email=value).exists():
+            raise ValidationError("Email already exists")
+        return value
