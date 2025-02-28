@@ -1,4 +1,4 @@
-from .user_views import UserListCreate, UserRetrieveUpdateDestroy
+from .user_views import UserListCreate, UserRetrieveUpdateDestroy, CheckUserPreferences, AddUserInterest
 from .motivational_quote_views import MotivationalQuoteListCreate, MotivationalQuoteRetrieveUpdateDestroy, RandomMotivationalQuoteView
 from .google_views import GoogleLogin, GoogleLoginCallback, LoginPage
 from .background_video_views import BackgroundVideoListCreate, BackgroundVideoRetrieveUpdateDestroy, BackgroundVideoTypeListCreate, BackgroundVideoTypeRetrieveUpdateDestroy

@@ -1,6 +1,6 @@
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
-from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant
+from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant, Interest
 
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
@@ -72,3 +72,21 @@ class RoomParticipantSerializer(serializers.ModelSerializer):
             'room': RoomSerializer,
             'user': UserSerializer
         }
+
+class InterestSerializer(serializers.ModelSerializer):
+    category = RoomCategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=RoomCategory.objects.all(), write_only=True, source='category'
+    )
+
+    class Meta:
+        model = Interest
+        fields = ['id', 'user', 'category', 'category_id', 'created_at']
+        read_only_fields = ['user']
+
+class AddUserInterestSerializer(serializers.Serializer):
+    category_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="List of category IDs to add as interests"
+    )

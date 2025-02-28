@@ -105,3 +105,14 @@ class RoomParticipant(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.room.room_name}'
+
+class Interest(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interests")
+    category = models.ForeignKey(RoomCategory, on_delete=models.CASCADE, related_name="user_interests")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "category")
+
+    def __str__(self):
+        return f"{self.user.username} - {self.category.category_name}"
