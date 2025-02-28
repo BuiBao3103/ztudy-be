@@ -199,6 +199,9 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "optional"  # No email verification required
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # No need to sent POST request to confirmation link
 LOGIN_URL = "api/v1/admin"  # Path, users will be redirected to after email verification
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/api/v1/auth/login/'
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/'
+ACCOUNT_LOGIN_REDIRECT_URL = '/'
 ACCOUNT_ADAPTER = 'api.adapters.CustomAccountAdapter'
 # Django SMTP
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
