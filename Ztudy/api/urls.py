@@ -49,6 +49,18 @@ urlpatterns = [
     path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
     path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
 
+    # Room URLs
+    path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
+    path('api/v1/rooms/<int:pk>/', views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
+
+    # Room Category URLs
+    path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(), name='room-category-view-create'),
+    path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(), name='room-category-view-detail'),
+
+    # Room Participant URLs
+    path('api/v1/room-participants/', views.RoomParticipantListCreate.as_view(), name='room-participant-view-create'),
+    path('api/v1/room-participants/<int:pk>/', views.RoomParticipantRetrieveUpdateDestroy.as_view(), name='room-participant-view-detail'),
+
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),

@@ -1,6 +1,6 @@
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
-from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound
+from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant
 
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
@@ -42,3 +42,33 @@ class SoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sound
         fields = '__all__'
+
+class RoomCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomCategory
+        fields = '__all__'
+
+class RoomSerializer(serializers.ModelSerializer):
+    # Sử dụng RoomCategorySerializer để nhúng thể loại phòng
+    category = RoomCategorySerializer(read_only=True)
+    creator_user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Room
+        fields = '__all__'
+        expandable_fields = {
+            'category': RoomCategorySerializer,
+            'creator_user': UserSerializer
+        }
+
+class RoomParticipantSerializer(serializers.ModelSerializer):
+    room = RoomSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = RoomParticipant
+        fields = '__all__'
+        expandable_fields = {
+            'room': RoomSerializer,
+            'user': UserSerializer
+        }

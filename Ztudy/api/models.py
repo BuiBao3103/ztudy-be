@@ -6,6 +6,9 @@ class SessionGoalsStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'
     COMPLETED = 'COMPLETED', 'Completed'
 
+class RoomType(models.TextChoices):
+    PRIVATE = 'PRIVATE', 'Private'
+    PUBLIC = 'PUBLIC', 'Public'
 
 class BackgroundVideoType(SoftDeleteModel):
     name = models.CharField(max_length=255, unique=True)
@@ -71,13 +74,34 @@ class Sound(models.Model):
     def __str__(self):
         return self.name
 
-# '1', 'Success is the sum of small efforts, repeated day in and day out.', 'Robert Collier', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '2', 'The future belongs to those who believe in the beauty of their dreams.', 'Eleanor Roosevelt', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '3', 'Don\'t watch the clock; do what it does. Keep going.', 'Sam Levenson', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '4', 'The only way to do great work is to love what you do.', 'Steve Jobs', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '5', 'Education is the passport to the future, for tomorrow belongs to those who prepare for it today.', 'Malcolm X', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '6', 'Believe you can and you\'re halfway there.', 'Theodore Roosevelt', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '7', 'The expert in anything was once a beginner.', 'Helen Hayes', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '8', 'Your education is a dress rehearsal for a life that is yours to lead.', 'Nora Ephron', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '9', 'It always seems impossible until it’s done.', 'Nelson Mandela', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
-# '10', 'Work hard in silence, let your success be the noise.', 'Frank Ocean', '2025-02-24 14:23:23.000000', '2025-02-24 14:23:23.000000'
+class RoomCategory(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class Room(models.Model):
+    name = models.CharField(max_length=255)
+    type = models.CharField(max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
+    creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True, blank=True)
+    link_invite = models.CharField(max_length=255, null=True, blank=True)
+    category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    max_participants = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class RoomParticipant(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_joined')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_admin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.room.room_name}'
