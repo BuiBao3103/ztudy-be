@@ -36,13 +36,15 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
-CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",  # Ví dụ: Cho phép từ React app chạy trên localhost:3000
-#     "https://your-frontend-domain.com",  # Thêm các miền frontend khác nếu cần
-# ]
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React local
+    # "https://your-frontend-domain.com",  # React đã deploy
+]
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 AUTH_USER_MODEL = 'api.User'
@@ -132,8 +134,8 @@ DATABASES = {
         },
     }
 }
-ACCESS_TOKEN_LIFETIME = int (os.getenv('ACCESS_TOKEN_LIFETIME', 1))
-REFRESH_TOKEN_LIFETIME = int (os.getenv('REFRESH_TOKEN_LIFETIME', 7))
+ACCESS_TOKEN_LIFETIME = int(os.getenv('ACCESS_TOKEN_LIFETIME', 1))
+REFRESH_TOKEN_LIFETIME = int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 1))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))),
@@ -146,8 +148,6 @@ REST_AUTH = {
     "JWT_AUTH_REFRESH_COOKIE": "_refresh",  # Name of refresh token cookie
     "JWT_AUTH_HTTPONLY": False,  # Makes sure refresh token is sent
 }
-
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
