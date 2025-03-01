@@ -50,10 +50,7 @@ class RoomCategorySerializer(serializers.ModelSerializer):
         model = RoomCategory
         fields = '__all__'
 
-class RoomSerializer(serializers.ModelSerializer):
-    # Sử dụng RoomCategorySerializer để nhúng thể loại phòng
-    category = RoomCategorySerializer(read_only=True)
-    creator_user = UserSerializer(read_only=True)
+class RoomSerializer(FlexFieldsModelSerializer):
 
     class Meta:
         model = Room

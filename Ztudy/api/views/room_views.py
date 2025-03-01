@@ -1,7 +1,11 @@
 from rest_flex_fields.views import FlexFieldsMixin
-from ..models import Room, RoomCategory, RoomParticipant
+from rest_framework.views import APIView
+
+from ..models import Room, RoomCategory, RoomParticipant, Interest
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
+from rest_framework import generics, permissions
+from ..pagination import CustomPagination
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
@@ -30,3 +34,16 @@ class RoomParticipantRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, 
     queryset = RoomParticipant.objects.all()
     serializer_class = RoomParticipantSerializer
     permit_list_expands = ['room', 'user']
+
+class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RoomSerializer
+    pagination_class = CustomPagination
+    permit_list_expands = ['category', 'creator_user']
+
+    def get_queryset(self):
+        user = self.request.user
+        interests = Interest.objects.filter(user=user).values_list('category', flat=True)
+
+        return Room.objects.filter(type="PUBLIC", category_id__in=interests, is_active=True)
+

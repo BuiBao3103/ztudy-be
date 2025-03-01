@@ -54,6 +54,7 @@ urlpatterns = [
     # Room URLs
     path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
     path('api/v1/rooms/<int:pk>/', views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
+    path('api/v1/rooms/suggested/', views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
 
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(), name='room-category-view-create'),
