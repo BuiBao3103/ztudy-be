@@ -3,8 +3,8 @@ from ..models import Room, RoomCategory, RoomParticipant, Interest
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..pagination import CustomPagination
-from django.db.models import Case, When, Value, IntegerField
 from rest_framework import generics, permissions
+from ..ml import get_suggested_rooms
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
@@ -41,23 +41,17 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
     pagination_class = CustomPagination
     permit_list_expands = ['category', 'creator_user']
 
-    def get_queryset(self):
+    def get(self, request, *args, **kwargs):
         user = self.request.user  # Get the currently authenticated user
-        interests = Interest.objects.filter(user=user).values_list('category_id',
-                                                                   flat=True)  # Retrieve category IDs that the user is interested in
 
-        # Assign priority: Rooms that belong to the user's interests are given priority = 1, others are assigned priority = 2
-        rooms = Room.objects.annotate(
-            priority=Case(
-                When(category_id__in=interests, then=Value(1)),
-                # Rooms matching the user's interests → Higher priority (1)
-                default=Value(2),  # Other rooms → Lower priority (2)
-                output_field=IntegerField(),
-            )
-        ).filter(type="PUBLIC", is_active=True)  # Filter only public and active rooms
+        # Get the recommended rooms based on the machine learning models (content-based or collaborative)
+        suggested_rooms = get_suggested_rooms(user)
 
-        # Order results: First by priority (preferred rooms first), then by newest rooms
-        return rooms.order_by("priority", "-created_at")
+        # Apply pagination to the queryset
+        paginator = CustomPagination()
+        paginated_rooms = paginator.paginate_queryset(suggested_rooms, request)
 
-
+        # Serialize the paginated room data and return as a response
+        serializer = self.serializer_class(paginated_rooms, many=True)
+        return paginator.get_paginated_response(serializer.data)
 

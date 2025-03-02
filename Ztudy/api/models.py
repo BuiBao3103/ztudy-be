@@ -116,3 +116,20 @@ class Interest(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.category.category_name}"
+
+
+class UserActivityLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
+    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='activity_logs')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    left_at = models.DateTimeField(null=True, blank=True)
+    interaction_count = models.IntegerField(default=0)
+
+    def duration(self):
+        """Tính tổng thời gian user ở trong phòng (tính theo phút)"""
+        if self.left_at:
+            return (self.left_at - self.joined_at).total_seconds() / 60
+        return 0
+
+    def __str__(self):
+        return f"{self.user.username} - {self.room.name}"
