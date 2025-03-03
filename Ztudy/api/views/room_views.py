@@ -1,10 +1,11 @@
+from requests import Response
 from rest_flex_fields.views import FlexFieldsMixin
-from ..models import Room, RoomCategory, RoomParticipant, Interest
+from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..pagination import CustomPagination
 from rest_framework import generics, permissions
-from ..ml import get_suggested_rooms
+from ..ml import content_based_filtering, collaborative_filtering
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
@@ -41,17 +42,15 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
     pagination_class = CustomPagination
     permit_list_expands = ['category', 'creator_user']
 
-    def get(self, request, *args, **kwargs):
-        user = self.request.user  # Get the currently authenticated user
+    def get_queryset(self):
+        """
+        Move filtering logic to get_queryset for better API view structure
+        """
+        user = self.request.user
+        activity_count = UserActivityLog.objects.filter(user=user).count()
 
-        # Get the recommended rooms based on the machine learning models (content-based or collaborative)
-        suggested_rooms = get_suggested_rooms(user)
+        if activity_count < 5:
+            return content_based_filtering(user)
+        return collaborative_filtering(user)
 
-        # Apply pagination to the queryset
-        paginator = CustomPagination()
-        paginated_rooms = paginator.paginate_queryset(suggested_rooms, request)
-
-        # Serialize the paginated room data and return as a response
-        serializer = self.serializer_class(paginated_rooms, many=True)
-        return paginator.get_paginated_response(serializer.data)
 

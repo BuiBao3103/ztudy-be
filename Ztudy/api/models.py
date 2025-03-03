@@ -81,7 +81,7 @@ class RoomCategory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.id}_{self.name}"
 
 class Room(models.Model):
     name = models.CharField(max_length=255)
@@ -115,7 +115,7 @@ class Interest(models.Model):
         unique_together = ("user", "category")
 
     def __str__(self):
-        return f"{self.user.username} - {self.category.category_name}"
+        return f"{self.user.id}_{self.user.username} - {self.category.id}_{self.category.name}"
 
 
 class UserActivityLog(models.Model):

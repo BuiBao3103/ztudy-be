@@ -4,8 +4,7 @@ from allauth.account.views import ConfirmEmailView
 from django.urls import path, include, re_path
 
 from . import views
-from django.contrib import admin
-
+from .admin import admin
 # Set up Swagger Schema View
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
