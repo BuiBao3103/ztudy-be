@@ -43,9 +43,6 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
     permit_list_expands = ['category', 'creator_user']
 
     def get_queryset(self):
-        """
-        Move filtering logic to get_queryset for better API view structure
-        """
         user = self.request.user
         activity_count = UserActivityLog.objects.filter(user=user).count()
 

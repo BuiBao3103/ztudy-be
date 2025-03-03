@@ -13,19 +13,26 @@ def content_based_filtering(user):
     """
     Content-Based Filtering: Recommend rooms based on user's interests with improved prioritization.
     """
+    # Get the user's interests (categories)
     interests = get_user_interests(user)
 
-    # Use the correct related name from UserActivityLog to Room
-    return Room.objects.filter(type="PUBLIC", is_active=True).annotate(
-        priority=Case(
-            When(category_id__in=interests, then=Value(1)),
-            default=Value(2),
-            output_field=IntegerField()
-        ),
-        # Use the correct related_name from your model definition
-        interaction_count=Count('activity_logs')  # Assuming 'activity_logs' is the related_name
-    ).order_by('priority', '-interaction_count', '-created_at')
+    # Filter active public rooms
+    rooms = Room.objects.filter(type="PUBLIC", is_active=True)
 
+    # Add a 'priority' field to prioritize rooms based on the user's interests
+    rooms = rooms.annotate(
+        # Prioritize rooms that belong to the user's interest categories
+        priority=Case(
+            When(category_id__in=interests, then=Value(1)),  # If category matches interest, priority = 1
+            default=Value(2),  # Otherwise, priority = 2
+            output_field=IntegerField()
+        )
+    )
+
+    # Order the rooms by priority and then by creation date (newest first)
+    rooms = rooms.order_by('priority', '-created_at')
+
+    return rooms
 
 def collaborative_filtering(user):
     """
