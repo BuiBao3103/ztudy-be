@@ -37,17 +37,27 @@ class RoomParticipantRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, 
 
 
 class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAPIView):
+    """
+    API view to suggest rooms to authenticated users based on their activity.
+    """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = RoomSerializer
     pagination_class = CustomPagination
     permit_list_expands = ['category', 'creator_user']
 
     def get_queryset(self):
+        """
+        Determine the recommendation method based on the user's activity count.
+
+        Returns:
+            QuerySet: A queryset of recommended Room objects.
+        """
         user = self.request.user
         activity_count = UserActivityLog.objects.filter(user=user).count()
 
-        if activity_count < 5:
+        # Use content-based filtering for users with less than 20 activities
+        if activity_count < 20:
             return content_based_filtering(user)
+        # Use collaborative filtering for users with 20 or more activities
         return collaborative_filtering(user)
-
 
