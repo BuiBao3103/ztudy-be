@@ -51,6 +51,7 @@ AUTH_USER_MODEL = 'api.User'
 
 INSTALLED_APPS = [
     'corsheaders',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'channels',
     'api',
     'rest_framework',
     'rest_framework.authtoken',
@@ -236,8 +238,18 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# MEDIA_URL: URL để truy cập các tệp media (như hình ảnh, âm thanh, video)
 MEDIA_URL = '/media/'
 
-# MEDIA_ROOT: Thư mục trên hệ thống mà các tệp media sẽ được lưu trữ
 MEDIA_ROOT = BASE_DIR / 'media'
+
+ASGI_APPLICATION = 'Ztudy.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'templates',
+]
