@@ -1,0 +1,121 @@
+/* Cập nhật cho giao diện tối */
+body {
+    font-family: Arial, sans-serif;
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    background-color: #121212; /* Màu nền tối */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Container */
+.container {
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
+    background-color: #1e1e1e; /* Màu nền container */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 90%;
+}
+
+/* Tiêu đề */
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+h3 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #bbb; /* Màu chữ nhẹ */
+}
+
+/* Hộp chat */
+#chat-box {
+    flex-grow: 1;
+    height: 300px;
+    border: 1px solid #444;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    overflow-y: auto;
+    overflow-x: hidden; /* Ẩn thanh cuộn ngang */
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column-reverse;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+
+/* Animation cho các tin nhắn mới */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Tin nhắn */
+#chat-box p {
+    margin: 5px 0;
+    padding: 8px;
+    background-color: #444;
+    border-radius: 4px;
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Animation cho tin nhắn */
+@keyframes slideIn {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Input và nút gửi */
+#message-input {
+    width: calc(100% - 120px);
+    padding: 10px;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #222;
+    color: white;
+}
+
+#send-btn {
+    padding: 10px 15px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+#send-btn:hover {
+    background-color: #45a049;
+}
+
+/* Các thành phần input, button */
+div input, div button {
+    margin-top: 10px;
+}
