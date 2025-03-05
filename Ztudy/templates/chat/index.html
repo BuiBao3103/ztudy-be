@@ -18,6 +18,16 @@
             <!-- Messages will appear here -->
         </div>
 
+        <!-- Typing indicator -->
+        <div id="typing-indicator">
+            <span>Someone is typing</span>
+            <div class="typing-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+
         <div style="display: flex; align-items: center;">
             <input type="text" id="message-input" placeholder="Type a message..." />
             <button id="send-btn" onclick="sendMessage()">Send</button>
