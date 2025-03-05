@@ -87,7 +87,7 @@ class Room(models.Model):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
     creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True, blank=True)
-    link_invite = models.CharField(max_length=255, null=True, blank=True)
+    code_invite = models.CharField(max_length=255, null=True, blank=True)
     category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
     max_participants = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
