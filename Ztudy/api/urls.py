@@ -81,4 +81,7 @@ urlpatterns = [
 
     # Swagger URL
     path('api/v1/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
+
+    # Chat Room URL
+    path('together/room/<str:code_invite>/', views.chat_room, name='chat-room'),
 ]

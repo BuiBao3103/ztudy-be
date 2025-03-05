@@ -5,3 +5,4 @@ from .background_video_views import BackgroundVideoListCreate, BackgroundVideoRe
 from .session_goal_views import SessionGoalListCreate, SessionGoalRetrieveUpdateDestroy
 from .sound_views import SoundList, SoundUpload
 from .room_views import RoomListCreate, RoomRetrieveUpdateDestroy, RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy, RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy, SuggestedRoomsAPIView
+from .views import chat_room
