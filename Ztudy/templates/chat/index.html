@@ -10,30 +10,43 @@
     <link rel="stylesheet" href="{% static 'chat/style.css' %}">
 </head>
 <body>
-    <div class="container">
-        <h2>Realtime Chat</h2>
-        <h3>Chat Room: <span id="current-room">{{ code_invite }}</span></h3>
+<div class="container">
+    <h2>Realtime Chat</h2>
 
-        <div id="chat-box">
-            <!-- Messages will appear here -->
-        </div>
+    <div class="room-controls">
+        <input type="text" id="room-code" placeholder="Enter room code">
+        <button onclick="joinRoom()">Join Room</button>
+        <button class="leave" onclick="leaveRoom()">Leave Room</button>
+    </div>
 
-        <!-- Typing indicator -->
-        <div id="typing-indicator">
-            <span>Someone is typing</span>
-            <div class="typing-dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+    <h3 id="current-room">Room: Not connected</h3>
+
+    <div class="layout">
+        <div class="chat-area">
+            <div id="chat-box"></div>
+            <div id="typing-indicator">
+                <span>Someone is typing</span>
+                <div class="typing-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
             </div>
         </div>
 
-        <div style="display: flex; align-items: center;">
-            <input type="text" id="message-input" placeholder="Type a message..." />
-            <button id="send-btn" onclick="sendMessage()">Send</button>
+        <div class="users-area">
+            <h4>Online Users</h4>
+            <ul id="user-list"></ul>
         </div>
     </div>
 
-    <script src="{% static 'chat/chat.js' %}"></script>
+    <div class="message-input-container">
+        <input type="text" id="message-input" placeholder="Type a message..." disabled/>
+        <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+    </div>
+</div>
+
+
+<script src="{% static 'chat/chat.js' %}"></script>
 </body>
 </html>
