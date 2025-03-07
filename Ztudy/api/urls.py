@@ -54,6 +54,8 @@ urlpatterns = [
     path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
     path('api/v1/rooms/<int:pk>/', views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
     path('api/v1/rooms/suggested/', views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
+    path('api/v1/rooms/join/<str:code_invite>/', views.JoinRoomAPIView.as_view(), name='join-room'),
+    path('api/v1/rooms/leave/<str:code_invite>/', views.LeaveRoomAPIView.as_view(), name='leave-room'),
 
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(), name='room-category-view-create'),
@@ -83,5 +85,5 @@ urlpatterns = [
     path('api/v1/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
 
     # Chat Room URL
-    path('together/room/<str:code_invite>/', views.chat_room, name='chat-room'),
+    path('together/', views.chat_room, name='chat-room'),
 ]

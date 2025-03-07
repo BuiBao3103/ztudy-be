@@ -56,7 +56,13 @@ class RoomSerializer(FlexFieldsModelSerializer):
     def create(self, validated_data):
         if 'code_invite' not in validated_data or not validated_data['code_invite']:
             validated_data['code_invite'] = generate_unique_code(Room, 'code_invite', 6)
-        return super().create(validated_data)
+
+        room = super().create(validated_data)
+
+        if room.creator_user:
+            RoomParticipant.objects.create(room=room, user=room.creator_user, is_admin=True)
+
+        return room
 
     class Meta:
         model = Room
@@ -67,9 +73,7 @@ class RoomSerializer(FlexFieldsModelSerializer):
             'creator_user': UserSerializer
         }
 
-class RoomParticipantSerializer(serializers.ModelSerializer):
-    room = RoomSerializer(read_only=True)
-    user = UserSerializer(read_only=True)
+class RoomParticipantSerializer(FlexFieldsModelSerializer):
 
     class Meta:
         model = RoomParticipant
