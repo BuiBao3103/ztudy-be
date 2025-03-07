@@ -21,7 +21,7 @@ class BackgroundVideoType(SoftDeleteModel):
 
 
 class BackgroundVideo(models.Model):
-    url = models.URLField(max_length=255)
+    youtube_code = models.CharField(max_length=255, null=False)
     image = models.URLField(max_length=255, null=True, blank=True)
     type = models.ForeignKey(BackgroundVideoType, on_delete=models.CASCADE, related_name="videos")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -102,6 +102,8 @@ class RoomParticipant(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_joined')
     joined_at = models.DateTimeField(auto_now_add=True)
     is_admin = models.BooleanField(default=False)
+    is_out = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.user.username} - {self.room.room_name}'
