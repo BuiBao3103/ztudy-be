@@ -5,6 +5,7 @@ from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, Swagg
 class BackgroundVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = BackgroundVideo.objects.all()
     serializer_class = BackgroundVideoSerializer
+    filterset_fields = ['type']
     permit_list_expands = ['type']
 
 class BackgroundVideoRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):

@@ -1,4 +1,3 @@
-from requests import Response
 from rest_flex_fields.views import FlexFieldsMixin
 from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer

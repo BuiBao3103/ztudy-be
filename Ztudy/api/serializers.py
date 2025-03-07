@@ -4,6 +4,8 @@ from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant, Interest
 from django.core.exceptions import ValidationError
+from .utils import generate_unique_code
+
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,10 +53,15 @@ class RoomCategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RoomSerializer(FlexFieldsModelSerializer):
+    def create(self, validated_data):
+        if 'code_invite' not in validated_data or not validated_data['code_invite']:
+            validated_data['code_invite'] = generate_unique_code(Room, 'code_invite', 6)
+        return super().create(validated_data)
 
     class Meta:
         model = Room
         fields = '__all__'
+        read_only_fields = ['is_active', 'code_invite']
         expandable_fields = {
             'category': RoomCategorySerializer,
             'creator_user': UserSerializer
