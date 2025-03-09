@@ -11,4 +11,5 @@ from .room_views import (RoomListCreate, RoomRetrieveUpdateDestroy, UploadThumbn
                          RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy,
                          RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy,
                          SuggestedRoomsAPIView, JoinRoomAPIView, LeaveRoomAPIView)
+from .stats_views import StudyTimeStatsView
 from .views import chat_room

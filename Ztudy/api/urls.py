@@ -69,6 +69,9 @@ urlpatterns = [
     path('api/v1/room-participants/', views.RoomParticipantListCreate.as_view(), name='room-participant-view-create'),
     path('api/v1/room-participants/<int:pk>/', views.RoomParticipantRetrieveUpdateDestroy.as_view(), name='room-participant-view-detail'),
 
+    # Stats URLs
+    path('api/v1/stats/study-time/', views.StudyTimeStatsView.as_view(), name='study-time-stats'),
+
     # Auth URLs
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),

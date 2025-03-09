@@ -2,8 +2,9 @@ from allauth.account.models import EmailAddress
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
-from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, \
-    Room, RoomParticipant, Interest
+from .models import (BackgroundVideoType, BackgroundVideo,
+                     SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
+                     Room, RoomParticipant, Interest, StudySession)
 from django.core.exceptions import ValidationError
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 
@@ -186,3 +187,9 @@ class CustomRegisterSerializer(RegisterSerializer):
         if EmailAddress.objects.filter(email=value).exists():
             raise ValidationError("Email already exists")
         return value
+
+
+class StudySessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudySession
+        fields = "__all__"
