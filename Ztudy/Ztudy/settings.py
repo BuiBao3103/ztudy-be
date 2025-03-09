@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 from django.conf.global_settings import AUTH_USER_MODEL, DEFAULT_FROM_EMAIL
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -253,3 +255,10 @@ CHANNEL_LAYERS = {
 STATICFILES_DIRS = [
     BASE_DIR / 'templates',
 ]
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
+    'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
+}

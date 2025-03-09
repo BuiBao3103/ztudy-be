@@ -1,6 +1,7 @@
 from django.db import models
 from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
+from cloudinary.models import CloudinaryField
 
 class SessionGoalsStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'
@@ -49,6 +50,7 @@ class SessionGoal(models.Model):
 class User(SoftDeleteModel, AbstractUser):
     email = models.EmailField(unique=True)
     is_online = models.BooleanField(default=False)
+    avatar = CloudinaryField('avatar', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

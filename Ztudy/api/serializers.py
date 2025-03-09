@@ -45,10 +45,13 @@ class BackgroundVideoSerializer(FlexFieldsModelSerializer):
         }
 
 class UserSerializer(serializers.ModelSerializer):
-
+    avatar = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = User
         exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups', 'user_permissions']
+
+class AvatarUploadSerializer(serializers.Serializer):
+    avatar = serializers.ImageField()
 
 class SessionGoalSerializer(FlexFieldsModelSerializer):
 

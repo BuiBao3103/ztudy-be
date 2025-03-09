@@ -1,15 +1,22 @@
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, filters
+from rest_framework import  filters
 from django_filters.rest_framework import DjangoFilterBackend
 
 from ..pagination import CustomPagination
-from ..serializers import UserSerializer, AddUserInterestSerializer, RoomCategorySerializer
+from ..serializers import UserSerializer, AddUserInterestSerializer, RoomCategorySerializer, AvatarUploadSerializer
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
 from ..models import User, Interest, RoomCategory
 from ..exceptions import CustomAPIException
+import cloudinary.uploader
+import cloudinary.uploader
+import imghdr
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status, generics, permissions
+import cloudinary.uploader
+import imghdr
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class UserList(generics.ListAPIView):
     queryset = User.objects.all()
@@ -25,6 +32,49 @@ class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
+
+
+
+
+
+class UploadAvatarView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [permissions.IsAuthenticated]  # Chỉ cho phép người dùng đã đăng nhập
+    parser_classes = (MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        request_body=AvatarUploadSerializer,
+        responses={201: openapi.Response('Avatar uploaded successfully', AvatarUploadSerializer)},
+        operation_description="Upload an avatar image to Cloudinary",
+    )
+    def post(self, request, *args, **kwargs):
+        user = request.user  # Lấy thông tin người dùng hiện tại
+        file = request.FILES.get('avatar')
+
+        if not file:
+            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Kiểm tra xem file có phải là ảnh không
+        if not imghdr.what(file):
+            return Response({'error': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Upload file lên Cloudinary với thư mục `ztudy/avatars/`
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="ztudy/avatars/",
+            public_id=f"user_{user.id}_avatar",
+            overwrite=True
+        )
+
+        # Cập nhật URL vào database
+        user.avatar = upload_result['secure_url']
+        user.save()
+
+        return Response({'avatar_url': user.avatar}, status=status.HTTP_201_CREATED)
+
+
+
+
 
 class CheckUserPreferences(APIView):
     """
