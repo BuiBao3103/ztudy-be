@@ -3,13 +3,16 @@ from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
 from cloudinary.models import CloudinaryField
 
+
 class SessionGoalsStatus(models.TextChoices):
     OPEN = 'OPEN', 'Open'
     COMPLETED = 'COMPLETED', 'Completed'
 
+
 class RoomType(models.TextChoices):
     PRIVATE = 'PRIVATE', 'Private'
     PUBLIC = 'PUBLIC', 'Public'
+
 
 class BackgroundVideoType(SoftDeleteModel):
     name = models.CharField(max_length=255, unique=True)
@@ -55,6 +58,7 @@ class User(SoftDeleteModel, AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = UserManager()
+
     def __str__(self):
         return self.username
 
@@ -68,6 +72,7 @@ class MotivationalQuote(models.Model):
     def __str__(self):
         return f'"{self.quote}" - {self.author}'
 
+
 class Sound(models.Model):
     name = models.CharField(max_length=255)
     sound_file = models.FileField(upload_to='sounds/')
@@ -76,6 +81,7 @@ class Sound(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class RoomCategory(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -86,11 +92,13 @@ class RoomCategory(models.Model):
     def __str__(self):
         return f"{self.id}_{self.name}"
 
+
 class Room(models.Model):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
     thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
-    creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True, blank=True)
+    creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True,
+                                     blank=True)
     code_invite = models.CharField(max_length=255, null=True, blank=True)
     category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
     max_participants = models.IntegerField(null=True, blank=True)
@@ -100,6 +108,7 @@ class Room(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class RoomParticipant(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')
@@ -111,6 +120,7 @@ class RoomParticipant(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.room.room_name}'
+
 
 class Interest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interests")
@@ -139,3 +149,12 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.room.name}"
+
+
+class StudySession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    total_time = models.FloatField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}: {self.total_time:.2f} h"
