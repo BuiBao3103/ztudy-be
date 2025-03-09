@@ -7,6 +7,10 @@ class SoundList(generics.ListAPIView):
     queryset = Sound.objects.all()
     serializer_class = SoundSerializer
 
+class SoundDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Sound.objects.all()
+    serializer_class = SoundSerializer
+
 class SoundUpload(generics.CreateAPIView):
     queryset = Sound.objects.all()
     serializer_class = SoundSerializer

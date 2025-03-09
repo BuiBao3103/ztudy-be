@@ -48,6 +48,7 @@ urlpatterns = [
 
     # Sound URLs
     path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
+    path('api/v1/sounds/<int:pk>/', views.SoundDetail.as_view(), name='sound-view-detail'),
     path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
 
     # Room URLs
