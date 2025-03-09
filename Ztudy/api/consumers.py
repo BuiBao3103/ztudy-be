@@ -1,7 +1,11 @@
+from django.db.models import F
+
+from .models import Room, RoomParticipant, User, StudySession
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.utils.timezone import now
 from asgiref.sync import sync_to_async
-from .models import Room, RoomParticipant, User
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -139,40 +143,47 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        """Khi người dùng mở web, đánh dấu họ online"""
         self.user = self.scope["user"]
-        print(self.user)
 
         if self.user.is_authenticated:
-            # Đánh dấu online trong DB
             await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=True)
 
-            # Thêm vào group chung toàn hệ thống
-            await self.channel_layer.group_add("global_online_users", self.channel_name)
+            self.session_start = now()
 
-            # Chấp nhận kết nối
+            await self.channel_layer.group_add("global_online_users", self.channel_name)
             await self.accept()
 
-            # Cập nhật số lượng online cho tất cả người dùng
             await self.broadcast_online_count()
         else:
             await self.close()
 
-
     async def disconnect(self, close_code):
-        """Khi người dùng đóng web, đánh dấu họ offline"""
         if self.user.is_authenticated:
-            # Đánh dấu offline trong DB
             await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=False)
 
-            # Rời group WebSocket
-            await self.channel_layer.group_discard("global_online_users", self.channel_name)
+            if hasattr(self, 'session_start'):
+                await self.update_study_time(self.user, self.session_start, now())
 
-            # Cập nhật số lượng online cho tất cả người dùng
+            await self.channel_layer.group_discard("global_online_users", self.channel_name)
             await self.broadcast_online_count()
 
+    async def update_study_time(self, user, session_start, session_end):
+        study_duration = (session_end - session_start).total_seconds() / 3600
+        study_date = session_start.date()
+
+        record, created = await sync_to_async(StudySession.objects.get_or_create)(
+            user=user, date=study_date
+        )
+
+        if created:
+            record.total_time = study_duration
+            await sync_to_async(record.save)()
+        else:
+            await sync_to_async(StudySession.objects.filter(id=record.id).update)(
+                total_time=F('total_time') + study_duration
+            )
+
     async def broadcast_online_count(self):
-        """Gửi số lượng người online đến tất cả client"""
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
 
         await self.channel_layer.group_send(
@@ -184,7 +195,6 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         )
 
     async def update_online_count(self, event):
-        """Gửi số lượng người online đến từng client"""
         await self.send(text_data=json.dumps({
             "type": "online_count",
             "online_count": event["online_count"]

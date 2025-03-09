@@ -47,7 +47,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-
 # Application definition
 AUTH_USER_MODEL = 'api.User'
 
@@ -256,9 +255,10 @@ STATICFILES_DIRS = [
     BASE_DIR / 'templates',
 ]
 
-
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
     'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
     'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
 }
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = False
