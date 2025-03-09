@@ -147,8 +147,8 @@ SIMPLE_JWT = {
 # dj-rest-auth
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_COOKIE": "_auth",  # Name of access token cookie
-    "JWT_AUTH_REFRESH_COOKIE": "_refresh",  # Name of refresh token cookie
+    "JWT_AUTH_COOKIE": "access_token",  # Name of access token cookie
+    "JWT_AUTH_REFRESH_COOKIE": "refresh_token",  # Name of refresh token cookie
     "JWT_AUTH_HTTPONLY": False,  # Makes sure refresh token is sent
 }
 

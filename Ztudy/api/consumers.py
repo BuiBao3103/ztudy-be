@@ -141,6 +141,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Khi người dùng mở web, đánh dấu họ online"""
         self.user = self.scope["user"]
+        print(self.user)
 
         if self.user.is_authenticated:
             # Đánh dấu online trong DB
