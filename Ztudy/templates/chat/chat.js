@@ -5,6 +5,20 @@ let isTyping = false;
 const TYPING_TIMEOUT = 2000; // 2 seconds
 let user = {}
 
+const protocolOnlineSocket = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+const onelineSocket = new WebSocket(`${protocolOnlineSocket}${window.location.host}/ws/online/`);
+
+onelineSocket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    if (data.type === "online_count") {
+        console.log(`Số người online hiện tại: ${data.online_count}`);
+    }
+};
+
+onelineSocket.onclose = function() {
+    console.log("Mất kết nối online WebSocket!");
+};
+
 // Initialize UI state
 function initUI() {
     const messageInput = document.getElementById('message-input');

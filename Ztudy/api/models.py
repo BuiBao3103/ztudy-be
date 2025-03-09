@@ -48,6 +48,7 @@ class SessionGoal(models.Model):
 
 class User(SoftDeleteModel, AbstractUser):
     email = models.EmailField(unique=True)
+    is_online = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

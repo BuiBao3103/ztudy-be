@@ -11,11 +11,11 @@ from django.shortcuts import get_object_or_404
 from ..models import User, Interest, RoomCategory
 from ..exceptions import CustomAPIException
 
-class UserListCreate(generics.ListAPIView):
+class UserList(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['username', 'email']
+    filterset_fields = ['username', 'email', 'is_online']
     search_fields = ['username', 'email']
     ordering_fields = ['id', 'username']
     pagination_class = CustomPagination

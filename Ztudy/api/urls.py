@@ -26,7 +26,7 @@ urlpatterns = [
     path("login/", views.LoginPage.as_view(), name="login"),
 
     # User URLs
-    path('api/v1/users/', views.UserListCreate.as_view(), name='user-view-create'),
+    path('api/v1/users/', views.UserList.as_view(), name='user-view'),
     path('api/v1/users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
     path('api/v1/users/<int:pk>/check-preferences/', views.CheckUserPreferences.as_view(), name='check-user-preferences'),
     path('api/v1/users/<int:pk>/add-interests/', views.AddUserInterest.as_view(), name='add-user-interests'),

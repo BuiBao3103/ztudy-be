@@ -135,3 +135,56 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'user_list',
             'users': event['users']
         }))
+
+
+class OnlineStatusConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        """Khi người dùng mở web, đánh dấu họ online"""
+        self.user = self.scope["user"]
+
+        if self.user.is_authenticated:
+            # Đánh dấu online trong DB
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=True)
+
+            # Thêm vào group chung toàn hệ thống
+            await self.channel_layer.group_add("global_online_users", self.channel_name)
+
+            # Chấp nhận kết nối
+            await self.accept()
+
+            # Cập nhật số lượng online cho tất cả người dùng
+            await self.broadcast_online_count()
+        else:
+            await self.close()
+
+
+    async def disconnect(self, close_code):
+        """Khi người dùng đóng web, đánh dấu họ offline"""
+        if self.user.is_authenticated:
+            # Đánh dấu offline trong DB
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=False)
+
+            # Rời group WebSocket
+            await self.channel_layer.group_discard("global_online_users", self.channel_name)
+
+            # Cập nhật số lượng online cho tất cả người dùng
+            await self.broadcast_online_count()
+
+    async def broadcast_online_count(self):
+        """Gửi số lượng người online đến tất cả client"""
+        online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
+
+        await self.channel_layer.group_send(
+            "global_online_users",
+            {
+                "type": "update_online_count",
+                "online_count": online_count
+            }
+        )
+
+    async def update_online_count(self, event):
+        """Gửi số lượng người online đến từng client"""
+        await self.send(text_data=json.dumps({
+            "type": "online_count",
+            "online_count": event["online_count"]
+        }))

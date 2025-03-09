@@ -48,7 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'is_active', 'groups', 'user_permissions']
+        exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups', 'user_permissions']
 
 class SessionGoalSerializer(FlexFieldsModelSerializer):
 
