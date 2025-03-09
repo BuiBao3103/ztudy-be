@@ -23,7 +23,7 @@ class BackgroundVideoType(SoftDeleteModel):
 
 class BackgroundVideo(models.Model):
     youtube_code = models.CharField(max_length=255, null=False)
-    image = models.URLField(max_length=255, null=True, blank=True)
+    image = CloudinaryField('image', null=True, blank=True)
     type = models.ForeignKey(BackgroundVideoType, on_delete=models.CASCADE, related_name="videos")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -89,6 +89,7 @@ class RoomCategory(models.Model):
 class Room(models.Model):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
+    thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
     creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True, blank=True)
     code_invite = models.CharField(max_length=255, null=True, blank=True)
     category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
