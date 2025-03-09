@@ -1,16 +1,21 @@
 from rest_flex_fields.views import FlexFieldsMixin
 from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, User
-from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer
+from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..pagination import CustomPagination
-from rest_framework import generics, permissions
 from ..ml import content_based_filtering, collaborative_filtering
-from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status, generics, permissions
+import cloudinary.uploader
+import imghdr
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
@@ -22,6 +27,37 @@ class RoomRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetriev
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permit_list_expands = ['category', 'creator_user']
+
+class UploadThumbnailView(generics.CreateAPIView):
+    queryset = Room.objects.all()
+    parser_classes = (MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        request_body=ThumbnailUploadSerializer,
+        responses={201: openapi.Response('Thumbnail uploaded successfully', ThumbnailUploadSerializer)},
+        operation_description="Upload an thumbnail image to Cloudinary",
+    )
+    def post(self, request, *args, **kwargs):
+        room = get_object_or_404(Room, id=kwargs['pk'])
+        file = request.FILES.get('thumbnail')
+
+        if not file:
+            return Response({'detail': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not imghdr.what(file):
+            return Response({'detail': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="ztudy/thumbnails/",
+            public_id=f"room_{room.id}_thumbnail",
+            overwrite=True
+        )
+
+        room.thumbnail = upload_result['secure_url']
+        room.save()
+
+        return Response({'thumbnail': room.thumbnail}, status=status.HTTP_201_CREATED)
 
 class RoomCategoryListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = RoomCategory.objects.all()

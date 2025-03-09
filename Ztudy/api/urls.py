@@ -39,6 +39,7 @@ urlpatterns = [
 
     # Background Video URLs
     path('api/v1/background-videos/', views.BackgroundVideoListCreate.as_view(), name='background-video-view-create'),
+    path('api/v1/background-videos/<int:pk>/upload-thumbnail/', views.UploadBackgroundVideoView.as_view(), name='upload-background-video-thumbnail'),
     path('api/v1/background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(), name='background-video-view-detail'),
     path('api/v1/background-video-types/', views.BackgroundVideoTypeListCreate.as_view(), name='background-video-type-view-create'),
     path('api/v1/background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(), name='background-video-type-view-detail'),
@@ -54,6 +55,7 @@ urlpatterns = [
 
     # Room URLs
     path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
+    path('api/v1/rooms/<int:pk>/upload-thumbnail/', views.UploadThumbnailView.as_view(), name='upload-thumbnail'),
     path('api/v1/rooms/<int:pk>/', views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
     path('api/v1/rooms/suggested/', views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
     path('api/v1/rooms/join/<str:code_invite>/', views.JoinRoomAPIView.as_view(), name='join-room'),

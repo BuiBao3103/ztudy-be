@@ -9,7 +9,6 @@ from ..models import User, Interest, RoomCategory
 from ..exceptions import CustomAPIException
 import cloudinary.uploader
 import cloudinary.uploader
-import imghdr
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
@@ -27,19 +26,13 @@ class UserList(generics.ListAPIView):
     ordering_fields = ['id', 'username']
     pagination_class = CustomPagination
 
-
 class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'pk'
 
-
-
-
-
 class UploadAvatarView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = [permissions.IsAuthenticated]  # Chỉ cho phép người dùng đã đăng nhập
     parser_classes = (MultiPartParser, FormParser)
 
     @swagger_auto_schema(
@@ -48,17 +41,15 @@ class UploadAvatarView(generics.CreateAPIView):
         operation_description="Upload an avatar image to Cloudinary",
     )
     def post(self, request, *args, **kwargs):
-        user = request.user  # Lấy thông tin người dùng hiện tại
+        user = get_object_or_404(User, id=kwargs['pk'])
         file = request.FILES.get('avatar')
 
         if not file:
-            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Kiểm tra xem file có phải là ảnh không
         if not imghdr.what(file):
-            return Response({'error': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Upload file lên Cloudinary với thư mục `ztudy/avatars/`
         upload_result = cloudinary.uploader.upload(
             file,
             folder="ztudy/avatars/",
@@ -70,11 +61,7 @@ class UploadAvatarView(generics.CreateAPIView):
         user.avatar = upload_result['secure_url']
         user.save()
 
-        return Response({'avatar_url': user.avatar}, status=status.HTTP_201_CREATED)
-
-
-
-
+        return Response({'avatar': user.avatar}, status=status.HTTP_201_CREATED)
 
 class CheckUserPreferences(APIView):
     """
