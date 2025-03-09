@@ -4,14 +4,36 @@ from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 from .models import BackgroundVideoType, BackgroundVideo, SessionGoal, User, MotivationalQuote, Sound, RoomCategory, Room, RoomParticipant, Interest
 from django.core.exceptions import ValidationError
-from .utils import generate_unique_code
+from .utils import generate_unique_code, encode_emoji, decode_emoji
 
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = BackgroundVideoType
-        # fields = '__all__'
         exclude = ['deleted_at', 'restored_at', 'transaction_id']
+
+    def create(self, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        if 'description' in validated_data:
+            validated_data['description'] = encode_emoji(validated_data['description'])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        if 'description' in validated_data:
+            validated_data['description'] = encode_emoji(validated_data['description'])
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'name' in data:
+            data['name'] = decode_emoji(data['name'])
+        if 'description' in data:
+            data['description'] = decode_emoji(data['description'])
+        return data
+
 
 class BackgroundVideoSerializer(FlexFieldsModelSerializer):
 
@@ -47,10 +69,42 @@ class SoundSerializer(serializers.ModelSerializer):
         model = Sound
         fields = '__all__'
 
+    def create(self, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'name' in data:
+            data['name'] = decode_emoji(data['name'])
+        return data
+
 class RoomCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomCategory
         fields = '__all__'
+
+    def create(self, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'name' in validated_data:
+            validated_data['name'] = encode_emoji(validated_data['name'])
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'name' in data:
+            data['name'] = decode_emoji(data['name'])
+        return data
 
 class RoomSerializer(FlexFieldsModelSerializer):
     def create(self, validated_data):
