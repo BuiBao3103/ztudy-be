@@ -1,9 +1,9 @@
-from django.db.models import F
-
 from .models import Room, RoomParticipant, User, StudySession
+import asyncio
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils.timezone import now
+from django.db.models import F
 from asgiref.sync import sync_to_async
 
 
@@ -149,23 +149,37 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=True)
 
             self.session_start = now()
+            self.is_active = True  # Cờ để kiểm soát vòng lặp cập nhật thời gian học
 
             await self.channel_layer.group_add("global_online_users", self.channel_name)
             await self.accept()
 
             await self.broadcast_online_count()
+
+            # Khởi chạy vòng lặp cập nhật thời gian học mỗi 6 phút
+            asyncio.create_task(self.auto_update_study_time())
+
         else:
             await self.close()
 
     async def disconnect(self, close_code):
         if self.user.is_authenticated:
             await sync_to_async(User.objects.filter(id=self.user.id).update)(is_online=False)
+            self.is_active = False
 
             if hasattr(self, 'session_start'):
                 await self.update_study_time(self.user, self.session_start, now())
 
             await self.channel_layer.group_discard("global_online_users", self.channel_name)
             await self.broadcast_online_count()
+
+    async def auto_update_study_time(self):
+        """Cập nhật thời gian học mỗi 6 phút cho đến khi người dùng ngắt kết nối"""
+        while self.is_active:
+            await asyncio.sleep(360)  # Chờ 6 phút
+            if self.is_active:
+                await self.update_study_time(self.user, self.session_start, now())
+                self.session_start = now()  # Cập nhật lại thời gian bắt đầu
 
     async def update_study_time(self, user, session_start, session_end):
         study_duration = (session_end - session_start).total_seconds() / 3600
