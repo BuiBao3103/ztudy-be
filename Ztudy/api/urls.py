@@ -8,6 +8,8 @@ from .admin import admin
 # Set up Swagger Schema View
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from dj_rest_auth.views import UserDetailsView
+from .serializers import CustomUserDetailsSerializer
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -29,24 +31,32 @@ urlpatterns = [
     path('api/v1/users/', views.UserList.as_view(), name='user-view'),
     path('api/v1/users/<int:pk>/', views.UserRetrieveUpdateDestroy.as_view(), name='user-view-detail'),
     path('api/v1/users/<int:pk>/upload-avatar/', views.UploadAvatarView.as_view(), name='upload-avatar'),
-    path('api/v1/users/<int:pk>/check-preferences/', views.CheckUserPreferences.as_view(), name='check-user-preferences'),
+    path('api/v1/users/<int:pk>/check-preferences/', views.CheckUserPreferences.as_view(),
+         name='check-user-preferences'),
     path('api/v1/users/<int:pk>/add-interests/', views.AddUserInterest.as_view(), name='add-user-interests'),
 
     # Motivational Quote URLs
-    path('api/v1/motivational-quotes/', views.MotivationalQuoteListCreate.as_view(), name='motivational-quote-view-create'),
-    path('api/v1/motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(), name='motivational-quote-view-detail'),
+    path('api/v1/motivational-quotes/', views.MotivationalQuoteListCreate.as_view(),
+         name='motivational-quote-view-create'),
+    path('api/v1/motivational-quotes/<int:pk>/', views.MotivationalQuoteRetrieveUpdateDestroy.as_view(),
+         name='motivational-quote-view-detail'),
     path('api/v1/motivational-quotes/random-quote/', views.RandomMotivationalQuoteView.as_view(), name='random-quote'),
 
     # Background Video URLs
     path('api/v1/background-videos/', views.BackgroundVideoListCreate.as_view(), name='background-video-view-create'),
-    path('api/v1/background-videos/<int:pk>/upload-thumbnail/', views.UploadBackgroundVideoView.as_view(), name='upload-background-video-thumbnail'),
-    path('api/v1/background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(), name='background-video-view-detail'),
-    path('api/v1/background-video-types/', views.BackgroundVideoTypeListCreate.as_view(), name='background-video-type-view-create'),
-    path('api/v1/background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(), name='background-video-type-view-detail'),
+    path('api/v1/background-videos/<int:pk>/upload-thumbnail/', views.UploadBackgroundVideoView.as_view(),
+         name='upload-background-video-thumbnail'),
+    path('api/v1/background-videos/<int:pk>/', views.BackgroundVideoRetrieveUpdateDestroy.as_view(),
+         name='background-video-view-detail'),
+    path('api/v1/background-video-types/', views.BackgroundVideoTypeListCreate.as_view(),
+         name='background-video-type-view-create'),
+    path('api/v1/background-video-types/<int:pk>/', views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(),
+         name='background-video-type-view-detail'),
 
     # Session Goal URLs
     path('api/v1/session-goals/', views.SessionGoalListCreate.as_view(), name='session-goal-view-create'),
-    path('api/v1/session-goals/<int:pk>/', views.SessionGoalRetrieveUpdateDestroy.as_view(), name='session-goal-view-detail'),
+    path('api/v1/session-goals/<int:pk>/', views.SessionGoalRetrieveUpdateDestroy.as_view(),
+         name='session-goal-view-detail'),
 
     # Sound URLs
     path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
@@ -63,17 +73,19 @@ urlpatterns = [
 
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(), name='room-category-view-create'),
-    path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(), name='room-category-view-detail'),
+    path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(),
+         name='room-category-view-detail'),
 
     # Room Participant URLs
     path('api/v1/room-participants/', views.RoomParticipantListCreate.as_view(), name='room-participant-view-create'),
-    path('api/v1/room-participants/<int:pk>/', views.RoomParticipantRetrieveUpdateDestroy.as_view(), name='room-participant-view-detail'),
+    path('api/v1/room-participants/<int:pk>/', views.RoomParticipantRetrieveUpdateDestroy.as_view(),
+         name='room-participant-view-detail'),
 
     # Stats URLs
     path('api/v1/stats/study-time/', views.StudyTimeStatsView.as_view(), name='study-time-stats'),
 
     # Auth URLs
-    path("api/v1/auth/", include("dj_rest_auth.urls")),
+    path('api/v1/auth/', include('dj_rest_auth.urls')),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),
     path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
     path("api/v1/auth/google/", views.GoogleLogin.as_view(), name="google_login"),

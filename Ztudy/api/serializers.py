@@ -7,6 +7,7 @@ from .models import (BackgroundVideoType, BackgroundVideo,
                      Room, RoomParticipant, Interest, StudySession)
 from django.core.exceptions import ValidationError
 from .utils import generate_unique_code, encode_emoji, decode_emoji
+from dj_rest_auth.serializers import UserDetailsSerializer
 
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
@@ -190,6 +191,17 @@ class CustomRegisterSerializer(RegisterSerializer):
 
 
 class StudySessionSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = StudySession
         fields = "__all__"
+
+
+class CustomUserDetailsSerializer(UserDetailsSerializer):
+    avatar = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups',
+                   'user_permissions']
