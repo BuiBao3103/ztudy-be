@@ -1,14 +1,14 @@
 // user.js
 
-let user = {};
+let currentUser = {};
 
 // Get user information
 function getUserInfo() {
     fetch("/api/v1/auth/user/")
         .then(response => response.json())
         .then(data => {
-            user = data;
-            console.log(user);
+            currentUser = data;
+            console.log(currentUser);
         })
         .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
 }

@@ -38,12 +38,13 @@ function handleWebSocketMessage(data) {
     if (data.type === "user_list") {
         updateUserList(data.users);
     } else if (data.type === "user_joined") {
-        addUserToList(data.username);
+        addUserToList(data.user);
     } else if (data.type === "user_left") {
-        removeUserFromList(data.username);
+        removeUserFromList(data.user);
     } else if (data.type === "chat_message") {
-        displayMessage(data.username, data.message);
+        console.log(data)
+        displayMessage(data.user, data.message);
     } else if (data.type === "typing_status") {
-        showTypingIndicator(data.is_typing, data.username);
+        showTypingIndicator(data.is_typing, data.user);
     }
 }

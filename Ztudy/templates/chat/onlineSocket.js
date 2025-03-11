@@ -1,4 +1,3 @@
-
 const protocolOnlineSocket = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
 let onelineSocket = new WebSocket(`${protocolOnlineSocket}${window.location.host}/ws/online/`);
 
@@ -6,7 +5,6 @@ onelineSocket.onmessage = function(event) {
     const data = JSON.parse(event.data);
     if (data.type === "online_count") {
         console.log(`Số người online hiện tại: ${data.online_count}`);
-        // Bạn có thể làm gì đó với số người online, ví dụ cập nhật giao diện người dùng
         updateOnlineCount(data.online_count);
     }
 };

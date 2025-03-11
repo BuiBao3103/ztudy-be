@@ -37,7 +37,7 @@ function updateUserList(users) {
 
     users.forEach(user => {
         const userElement = document.createElement("li");
-        userElement.textContent = user;
+        userElement.textContent = user.id + "-" + user.username;
         userListContainer.appendChild(userElement);
     });
 }
@@ -45,9 +45,9 @@ function updateUserList(users) {
 // Add user to list
 function addUserToList(user) {
     const userListContainer = document.getElementById("user-list");
-    if (!Array.from(userListContainer.children).some(child => child.textContent === user)) {
+    if (!Array.from(userListContainer.children).some(child => child.textContent === user.id + "-" + user.username)) {
         const userElement = document.createElement("li");
-        userElement.textContent = user;
+        userElement.textContent = user.id + "-" + user.username
         userListContainer.appendChild(userElement);
     }
 }
@@ -56,7 +56,7 @@ function addUserToList(user) {
 function removeUserFromList(user) {
     const userListContainer = document.getElementById("user-list");
     Array.from(userListContainer.children).forEach(child => {
-        if (child.textContent === user) {
+        if (child.textContent === user.id + "-" + user.username) {
             userListContainer.removeChild(child);
         }
     });

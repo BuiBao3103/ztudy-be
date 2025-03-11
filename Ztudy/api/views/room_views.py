@@ -1,6 +1,7 @@
 from rest_flex_fields.views import FlexFieldsMixin
 from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, User
-from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer
+from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
+    UserSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..pagination import CustomPagination
 from ..ml import content_based_filtering, collaborative_filtering
@@ -23,10 +24,12 @@ class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     filterset_fields = ['code_invite', 'category', 'creator_user']
     permit_list_expands = ['category', 'creator_user']
 
+
 class RoomRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permit_list_expands = ['category', 'creator_user']
+
 
 class UploadThumbnailView(generics.CreateAPIView):
     queryset = Room.objects.all()
@@ -59,18 +62,22 @@ class UploadThumbnailView(generics.CreateAPIView):
 
         return Response({'thumbnail': room.thumbnail}, status=status.HTTP_201_CREATED)
 
+
 class RoomCategoryListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = RoomCategory.objects.all()
     serializer_class = RoomCategorySerializer
+
 
 class RoomCategoryRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):
     queryset = RoomCategory.objects.all()
     serializer_class = RoomCategorySerializer
 
+
 class RoomParticipantListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = RoomParticipant.objects.all()
     serializer_class = RoomParticipantSerializer
     permit_list_expands = ['room', 'user']
+
 
 class RoomParticipantRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):
     queryset = RoomParticipant.objects.all()
@@ -106,6 +113,7 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
 
 class JoinRoomAPIView(APIView):
     """API cho phép user tham gia phòng."""
+
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
@@ -120,11 +128,11 @@ class JoinRoomAPIView(APIView):
         participant.is_approved = True  # Nếu phòng PUBLIC thì approved luôn
         participant.save()
 
-        # Gửi sự kiện WebSocket thông báo user vào phòng
         channel_layer = get_channel_layer()
+        user = UserSerializer(user).data
         async_to_sync(channel_layer.group_send)(
             f'chat_{room.id}',
-            {'type': 'user_joined', 'user_id': user.id, 'username': user.username}
+            {'type': 'user_joined', 'user': user}
         )
 
         return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
@@ -132,6 +140,7 @@ class JoinRoomAPIView(APIView):
 
 class LeaveRoomAPIView(APIView):
     """API cho phép user rời phòng."""
+
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
@@ -142,11 +151,10 @@ class LeaveRoomAPIView(APIView):
 
         # Gửi sự kiện WebSocket thông báo user rời phòng
         channel_layer = get_channel_layer()
+        user = UserSerializer(user).data
         async_to_sync(channel_layer.group_send)(
             f'chat_{room.id}',
-            {'type': 'user_left', 'user_id': user.id, 'username': user.username}
+            {'type': 'user_left', 'user': user}
         )
 
         return Response({'message': 'Left room successfully!'}, status=status.HTTP_200_OK)
-
-

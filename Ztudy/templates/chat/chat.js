@@ -12,7 +12,7 @@ function sendMessage() {
     if (message && chatSocket !== null) {
         chatSocket.send(JSON.stringify({
             type: "message",
-            message: message
+            message: message,
         }));
         messageInput.value = "";
         isTyping = false;
@@ -21,21 +21,21 @@ function sendMessage() {
     }
 }
 
+
 // Send typing status
 function sendTypingStatus(status) {
     if (chatSocket !== null && chatSocket.readyState === WebSocket.OPEN) {
         chatSocket.send(JSON.stringify({
             'type': 'typing',
             'is_typing': status,
-            'username': user.username
         }));
     }
 }
 
 // Show typing indicator
-function showTypingIndicator(isTyping, typingUsername) {
+function showTypingIndicator(isTyping, user) {
     const typingIndicator = document.getElementById("typing-indicator");
-    if (isTyping && typingUsername !== user.username) {
+    if (isTyping && user.id !== currentUser.id) {
         typingIndicator.style.display = "flex";
     } else {
         typingIndicator.style.display = "none";
@@ -43,10 +43,10 @@ function showTypingIndicator(isTyping, typingUsername) {
 }
 
 // Display message in interface
-function displayMessage(username, message) {
+function displayMessage(user, message) {
     const chatBox = document.getElementById("chat-box");
     const messageElement = document.createElement("p");
-    messageElement.textContent = `${username}: ${message}`;
+    messageElement.textContent = `${user.id}-${user.username}: ${message}`;  // Bạn có thể thay đổi thành userId ở đây
     chatBox.appendChild(messageElement);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
