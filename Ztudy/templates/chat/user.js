@@ -21,8 +21,6 @@ function joinRoom() {
         return;
     }
 
-    // First establish WebSocket connection
-    connectWebSocket(codeInvite);
 
     // Then send join request to the API
     fetch(`/api/v1/rooms/join/${codeInvite}/`, {method: "POST"})
@@ -43,6 +41,8 @@ function joinRoom() {
                 disableChatInterface();
                 alert("You need to wait for admin approval to join the room!");
             }
+            connectWebSocket(codeInvite);
+
         })
         .catch(error => {
             console.error("Error joining room:", error);

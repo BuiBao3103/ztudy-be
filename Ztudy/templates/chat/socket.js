@@ -51,11 +51,7 @@ function handleWebSocketMessage(data) {
 
     if (data.type === "user_list") {
         updateUserList(data.users);
-    } else if (data.type === "waiting_for_approval") {
-        console.log(data.message);
-        alert(data.message);
     } else if (data.type === "user_approved") {
-        console.log(`User approved: ${data.user.username}`);
         if (data.user.id === currentUser.id) {
             alert(`You have been approved and joined the room!`);
             enableChatInterface();

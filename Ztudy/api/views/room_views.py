@@ -145,7 +145,6 @@ class JoinRoomAPIView(APIView):
 
         # If already approved, allow joining
         if participant.is_approved:
-            participant.is_out = False
             participant.save()
 
             channel_layer = get_channel_layer()
@@ -160,7 +159,6 @@ class JoinRoomAPIView(APIView):
         # If public room, auto-approve
         if room.type == "PUBLIC":
             participant.is_approved = True
-            participant.is_out = False
             participant.save()
 
             channel_layer = get_channel_layer()
@@ -223,7 +221,7 @@ class ApproveJoinRequestAPIView(APIView):
 
         # Update pending requests list
         pending_requests = list(
-            RoomParticipant.objects.filter(room=room, is_approved=False, is_out=False)
+            RoomParticipant.objects.filter(room=room, is_approved=False)
             .select_related('user')
         )
         request_list = [UserSerializer(request.user).data for request in pending_requests]
@@ -237,4 +235,3 @@ class ApproveJoinRequestAPIView(APIView):
         )
 
         return Response({'message': 'User has been approved successfully!'}, status=status.HTTP_200_OK)
-

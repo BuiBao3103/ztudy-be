@@ -41,18 +41,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if self.room.type == "PRIVATE" and not participant.is_approved:
             self.is_in_waiting_state = True
-            await self.send(text_data=json.dumps({
-                'type': 'waiting_for_approval',
-                'message': 'You are waiting for approval to join the room.'
-            }))
-
-            # Broadcast the updated pending requests list to all users in the room
-            await self.broadcast_pending_requests()
             return
 
         # User is approved, add them to the room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
+        await sync_to_async(
+            lambda: RoomParticipant.objects.filter(room=self.room, user=self.user).update(is_out=False))()
         user = UserSerializer(self.user).data
 
         await self.channel_layer.group_send(
@@ -210,28 +204,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def broadcast_pending_requests(self):
-        # Get all pending requests for this room
-        pending_requests = await sync_to_async(list)(
-            RoomParticipant.objects.filter(room=self.room, is_approved=False, is_out=False).select_related('user')
-        )
+        try:
+            # Get all pending requests for this room
+            pending_requests = await sync_to_async(list)(
+                RoomParticipant.objects.filter(room=self.room, is_approved=False).select_related('user')
+            )
 
-        # Serialize the user data for each pending request
-        request_list = []
-        for participant in pending_requests:
-            user_data = await sync_to_async(UserSerializer)(participant.user).data
-            request_list.append(user_data)
+            # Serialize the user data for each pending request
+            request_list = []
+            for participant in pending_requests:
+                user_data = UserSerializer(participant.user).data
+                request_list.append(user_data)
 
-        # Send the pending requests list to everyone in the room
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'update_pending_requests',
-                'requests': request_list
-            }
-        )
+            # Send the pending requests list to everyone in the room
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'update_pending_requests',
+                    'requests': request_list
+                }
+            )
+        except Exception as e:
+            print(f"Error in broadcast_pending_requests: {str(e)}")
 
     async def update_pending_requests(self, event):
-        print(f"Pending requests: {event['requests']}")
         await self.send(text_data=json.dumps({
             'type': 'pending_requests',
             'requests': event['requests']
