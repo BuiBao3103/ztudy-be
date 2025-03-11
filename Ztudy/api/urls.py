@@ -1,15 +1,10 @@
-# Ztudy/api/urls.py
-
 from allauth.account.views import ConfirmEmailView
 from django.urls import path, include, re_path
 
 from . import views
 from .admin import admin
-# Set up Swagger Schema View
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from dj_rest_auth.views import UserDetailsView
-from .serializers import CustomUserDetailsSerializer
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -83,6 +78,7 @@ urlpatterns = [
 
     # Stats URLs
     path('api/v1/stats/study-time/', views.StudyTimeStatsView.as_view(), name='study-time-stats'),
+    path('api/v1/stats/study-time-chart/', views.StudyTimeChartView.as_view(), name='study-time-chart'),
 
     # Auth URLs
     path('api/v1/auth/', include('dj_rest_auth.urls')),
