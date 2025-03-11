@@ -25,7 +25,7 @@ class BackgroundVideoType(SoftDeleteModel):
 
 
 class BackgroundVideo(models.Model):
-    youtube_code = models.CharField(max_length=255, null=False)
+    youtube_url = models.URLField()
     image = CloudinaryField('image', null=True, blank=True)
     type = models.ForeignKey(BackgroundVideoType, on_delete=models.CASCADE, related_name="videos")
     created_at = models.DateTimeField(auto_now_add=True)
