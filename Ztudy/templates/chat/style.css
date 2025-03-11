@@ -132,6 +132,13 @@ h3 {
     border-radius: 10px;
 }
 
+/* Side Area Container */
+.side-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
 
 /* Users Area */
 .users-area {
@@ -166,6 +173,61 @@ h3 {
     background-color: #3a3a3a;
     border-radius: 4px;
     animation: fadeIn 0.3s forwards;
+}
+
+/* Requests Area */
+.requests-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+    padding: 10px;
+    border: none;
+}
+
+.requests-area h4 {
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 10px;
+    text-align: center;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #444;
+}
+
+#request-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+}
+
+#request-list li {
+    color: #ddd;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background-color: #3a3a3a;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeIn 0.3s forwards;
+}
+
+.approve-button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.approve-button:hover {
+    background-color: #45a049;
 }
 
 /* Typing Indicator */
@@ -222,7 +284,6 @@ h3 {
     border-radius: 4px;
     animation: slideIn 0.5s ease-out;
 }
-
 
 /* Message Input */
 .message-input-container {
@@ -285,61 +346,4 @@ h3 {
         transform: translateX(0);
         opacity: 1;
     }
-}
-
-
-.requests-area {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #ccc;
-}
-
-.requests-area h4 {
-    margin-bottom: 10px;
-}
-
-.requests-area ul {
-    list-style: none;
-    padding: 0;
-}
-
-.requests-area li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 0;
-}
-
-.requests-area button {
-    background-color: green;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-}
-
-.requests-area button:hover {
-    background-color: darkgreen;
-}
-
-/* Add this to your CSS if needed */
-.requests-area {
-    margin-top: 20px;
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.approve-button {
-    margin-left: 10px;
-    padding: 3px 8px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.approve-button:hover {
-    background-color: #45a049;
 }
