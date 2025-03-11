@@ -13,28 +13,44 @@ function getUserInfo() {
         .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
 }
 
-// Join room
+// Revised JoinRoom function
 function joinRoom() {
     const codeInvite = document.getElementById('room-code').value.trim();
     if (!codeInvite) {
-        alert("Vui lòng nhập mã phòng!");
+        alert("Please enter a room code!");
         return;
     }
 
+    // First establish WebSocket connection
+    connectWebSocket(codeInvite);
+
+    // Then send join request to the API
     fetch(`/api/v1/rooms/join/${codeInvite}/`, {method: "POST"})
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log("Join room response:", data);
+
             if (data.message === "Joined room successfully!") {
-                connectWebSocket(codeInvite);
+                // User has been approved, enable chat interface
                 enableChatInterface();
-            } else {
-                alert("Bạn cần chờ admin xét duyệt để vào phòng!");
+            } else if (data.message === "Waiting for admin approval") {
+                // User is waiting for approval
+                disableChatInterface();
+                alert("You need to wait for admin approval to join the room!");
             }
         })
-        .catch(error => console.error("Lỗi khi vào phòng:", error));
+        .catch(error => {
+            console.error("Error joining room:", error);
+            alert("Error joining room: " + error.message);
+        });
 }
 
-// Leave room
+// Updated leaveRoom function to handle disconnection properly
 function leaveRoom() {
     if (currentRoom) {
         fetch(`/api/v1/rooms/leave/${currentRoom}/`, {method: "POST"})
@@ -45,12 +61,13 @@ function leaveRoom() {
                     chatSocket = null;
                 }
                 document.getElementById("user-list").innerHTML = "";
+                document.getElementById("request-list").innerHTML = "";
                 document.getElementById("chat-box").innerHTML = "";
                 document.getElementById("current-room").textContent = "Room: Not connected";
                 currentRoom = null;
                 disableChatInterface();
-                alert("Bạn đã rời phòng thành công!");
+                alert("You have successfully left the room!");
             })
-            .catch(error => console.error("Lỗi khi rời phòng:", error));
+            .catch(error => console.error("Error leaving room:", error));
     }
 }

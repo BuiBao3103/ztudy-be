@@ -119,19 +119,20 @@ class JoinRoomAPIView(APIView):
 
         participant, created = RoomParticipant.objects.get_or_create(room=room, user=user)
 
-        # Kiểm tra nếu là phòng riêng và người tham gia chưa được phê duyệt
+        # Check if private room and not approved
         if room.type == "PRIVATE" and not participant.is_approved:
-            participant.is_out = True
+            participant.is_out = False  # Keep them in the room, but waiting for approval
             participant.save()
 
-            # Đảm bảo gửi danh sách yêu cầu đúng
-            channel_layer = get_channel_layer()
+            # Get all pending requests
             pending_requests = list(
-                RoomParticipant.objects.filter(room=room, is_approved=False)
+                RoomParticipant.objects.filter(room=room, is_approved=False, is_out=False)
                 .select_related('user')
             )
-            request_list = [UserSerializer(request.user).data for request in pending_requests]
+            request_list = [UserSerializer(req.user).data for req in pending_requests]
 
+            # Broadcast updated pending request list
+            channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f'chat_{room.id}',
                 {
@@ -142,7 +143,7 @@ class JoinRoomAPIView(APIView):
 
             return Response({'message': 'Waiting for admin approval'}, status=status.HTTP_202_ACCEPTED)
 
-        # Nếu đã được phê duyệt, cho phép tham gia
+        # If already approved, allow joining
         if participant.is_approved:
             participant.is_out = False
             participant.save()
@@ -156,7 +157,21 @@ class JoinRoomAPIView(APIView):
 
             return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
 
-        # Nếu chưa phê duyệt và không phải phòng công cộng, trả lại yêu cầu chờ
+        # If public room, auto-approve
+        if room.type == "PUBLIC":
+            participant.is_approved = True
+            participant.is_out = False
+            participant.save()
+
+            channel_layer = get_channel_layer()
+            user_data = UserSerializer(user).data
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{room.id}',
+                {'type': 'user_joined', 'user': user_data}
+            )
+
+            return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
+
         return Response({'message': 'You are still waiting for approval'}, status=status.HTTP_202_ACCEPTED)
 
 
@@ -188,24 +203,27 @@ class ApproveJoinRequestAPIView(APIView):
             return Response({'message': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant.is_approved = True
+        participant.is_out = False  # Set is_out to False so user is active in the room
         participant.save()
 
         channel_layer = get_channel_layer()
 
-        # Gửi thông báo cho người được phê duyệt (người tham gia)
+        # Send notification to the approved user
         user_data = UserSerializer(participant.user).data
-        # Gửi thông báo tới người dùng đã được phê duyệt
+        # Send to user-specific group
         async_to_sync(channel_layer.group_send)(
             f'user_{participant.user.id}',
             {
                 'type': 'user_approved',
-                'user': user_data
+                'user': user_data,
+                'room_id': room.id,
+                'code_invite': code_invite
             }
         )
 
-        # Cập nhật danh sách yêu cầu
+        # Update pending requests list
         pending_requests = list(
-            RoomParticipant.objects.filter(room=room, is_approved=False)
+            RoomParticipant.objects.filter(room=room, is_approved=False, is_out=False)
             .select_related('user')
         )
         request_list = [UserSerializer(request.user).data for request in pending_requests]
@@ -219,5 +237,4 @@ class ApproveJoinRequestAPIView(APIView):
         )
 
         return Response({'message': 'User has been approved successfully!'}, status=status.HTTP_200_OK)
-
 

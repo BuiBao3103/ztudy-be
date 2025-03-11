@@ -12,27 +12,46 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.code_invite = self.scope['url_route']['kwargs']['code_invite']
         self.user = self.scope["user"]
+        self.is_in_waiting_state = False
 
         try:
             self.room = await sync_to_async(Room.objects.get)(code_invite=self.code_invite)
             self.room_group_name = f'chat_{self.room.id}'
+            self.user_group_name = f'user_{self.user.id}'
         except Room.DoesNotExist:
             await self.close()
             return
 
+        # Accept the connection right away
+        await self.accept()
+
+        # Always add user to their personal channel
+        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+
         participant = await sync_to_async(
-            lambda: RoomParticipant.objects.filter(room=self.room, user=self.user, is_out=False).first())()
+            lambda: RoomParticipant.objects.filter(room=self.room, user=self.user).first())()
 
         if not participant:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'You are not a participant of this room.'
+            }))
             await self.close()
             return
 
         if self.room.type == "PRIVATE" and not participant.is_approved:
-            await self.close()
+            self.is_in_waiting_state = True
+            await self.send(text_data=json.dumps({
+                'type': 'waiting_for_approval',
+                'message': 'You are waiting for approval to join the room.'
+            }))
+
+            # Broadcast the updated pending requests list to all users in the room
+            await self.broadcast_pending_requests()
             return
 
+        # User is approved, add them to the room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
 
         user = UserSerializer(self.user).data
 
@@ -46,14 +65,45 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.broadcast_user_list()
 
+        # If this is an admin/approved user, send them the pending requests list
+        if participant.is_admin or (self.room.type == "PRIVATE" and participant.is_approved):
+            await self.broadcast_pending_requests()
+
     async def user_approved(self, event):
-        # Thông báo cho người được phê duyệt
         user = event['user']
-        print(f"User {user['username']} has been approved")
-        await self.send(text_data=json.dumps({
-            'type': 'user_approved',
-            'user': user
-        }))
+        room_id = event['room_id']
+        code_invite = event['code_invite']
+
+        if user['id'] == self.user.id and self.is_in_waiting_state:
+            self.is_in_waiting_state = False
+
+            # Add user to room group
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+
+            # Update participant status
+            await sync_to_async(
+                lambda: RoomParticipant.objects.filter(room=self.room, user=self.user).update(is_out=False,
+                                                                                              is_approved=True))()
+
+            # Notify user about approval
+            await self.send(text_data=json.dumps({
+                'type': 'user_approved',
+                'user': user,
+                'room_id': room_id,
+                'code_invite': code_invite
+            }))
+
+            # Broadcast user joined to room
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'user_joined',
+                    'user': user
+                }
+            )
+
+            # Update user list in room
+            await self.broadcast_user_list()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
@@ -160,17 +210,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def broadcast_pending_requests(self):
+        # Get all pending requests for this room
         pending_requests = await sync_to_async(list)(
             RoomParticipant.objects.filter(room=self.room, is_approved=False, is_out=False).select_related('user')
         )
 
-        request_list = [UserSerializer(request.user).data for request in pending_requests]
+        # Serialize the user data for each pending request
+        request_list = []
+        for participant in pending_requests:
+            user_data = await sync_to_async(UserSerializer)(participant.user).data
+            request_list.append(user_data)
 
+        # Send the pending requests list to everyone in the room
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'update_pending_requests',
-                'requests': request_list  # Đảm bảo key 'requests' tồn tại
+                'requests': request_list
             }
         )
 
