@@ -224,9 +224,6 @@ h3 {
 }
 
 
-
-
-
 /* Message Input */
 .message-input-container {
     display: flex;
@@ -291,5 +288,36 @@ h3 {
 }
 
 
+.requests-area {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
 
+.requests-area h4 {
+    margin-bottom: 10px;
+}
 
+.requests-area ul {
+    list-style: none;
+    padding: 0;
+}
+
+.requests-area li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.requests-area button {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.requests-area button:hover {
+    background-color: darkgreen;
+}

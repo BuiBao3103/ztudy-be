@@ -50,3 +50,32 @@ function displayMessage(user, message) {
     chatBox.appendChild(messageElement);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+function updateRequestList(requests) {
+    const requestListContainer = document.getElementById("request-list");
+    requestListContainer.innerHTML = "";
+
+    requests.forEach(user => {
+        const userElement = document.createElement("li");
+        userElement.textContent = `${user.id} - ${user.username}`;
+
+        const approveButton = document.createElement("button");
+        approveButton.textContent = "Approve";
+        approveButton.onclick = function () {
+            approveUser(user.id);
+        };
+
+        userElement.appendChild(approveButton);
+        requestListContainer.appendChild(userElement);
+    });
+}
+
+// Gửi yêu cầu phê duyệt người dùng
+function approveUser(userId) {
+    fetch(`/api/v1/rooms/${currentRoom}/approve/${userId}/`, {method: "POST"})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+        })
+        .catch(error => console.error("Error approving user:", error));
+}

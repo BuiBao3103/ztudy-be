@@ -65,7 +65,8 @@ urlpatterns = [
     path('api/v1/rooms/suggested/', views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
     path('api/v1/rooms/join/<str:code_invite>/', views.JoinRoomAPIView.as_view(), name='join-room'),
     path('api/v1/rooms/leave/<str:code_invite>/', views.LeaveRoomAPIView.as_view(), name='leave-room'),
-
+    path('api/v1/rooms/<str:code_invite>/approve/<int:user_id>/', views.ApproveJoinRequestAPIView.as_view()),
+    
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(), name='room-category-view-create'),
     path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(),

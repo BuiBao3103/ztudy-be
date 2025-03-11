@@ -46,6 +46,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.broadcast_user_list()
 
+    async def user_approved(self, event):
+        # Thông báo cho người được phê duyệt
+        user = event['user']
+        print(f"User {user['username']} has been approved")
+        await self.send(text_data=json.dumps({
+            'type': 'user_approved',
+            'user': user
+        }))
+
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -148,6 +157,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'user_list',
             'users': event['users']
+        }))
+
+    async def broadcast_pending_requests(self):
+        pending_requests = await sync_to_async(list)(
+            RoomParticipant.objects.filter(room=self.room, is_approved=False, is_out=False).select_related('user')
+        )
+
+        request_list = [UserSerializer(request.user).data for request in pending_requests]
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'update_pending_requests',
+                'requests': request_list  # Đảm bảo key 'requests' tồn tại
+            }
+        )
+
+    async def update_pending_requests(self, event):
+        print(f"Pending requests: {event['requests']}")
+        await self.send(text_data=json.dumps({
+            'type': 'pending_requests',
+            'requests': event['requests']
         }))
 
 

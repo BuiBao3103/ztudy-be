@@ -37,14 +37,20 @@ function connectWebSocket(codeInvite) {
 function handleWebSocketMessage(data) {
     if (data.type === "user_list") {
         updateUserList(data.users);
+    } else if (data.type === "pending_requests") {
+        console.log("Pending requests:", data.requests);
+        updateRequestList(data.requests);
     } else if (data.type === "user_joined") {
         addUserToList(data.user);
     } else if (data.type === "user_left") {
         removeUserFromList(data.user);
     } else if (data.type === "chat_message") {
-        console.log(data)
         displayMessage(data.user, data.message);
     } else if (data.type === "typing_status") {
         showTypingIndicator(data.is_typing, data.user);
+    } else if (data.type === "user_approved") {
+        alert(`You have been approved and will join the room automatically.`);
+        connectWebSocket(currentRoom);
     }
 }
+

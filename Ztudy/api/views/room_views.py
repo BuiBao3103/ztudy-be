@@ -21,7 +21,7 @@ from drf_yasg import openapi
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
-    filterset_fields = ['code_invite', 'category', 'creator_user']
+    filterset_fields = ['code_invite', 'category', 'creator_user', 'type']
     permit_list_expands = ['category', 'creator_user']
 
 
@@ -76,6 +76,7 @@ class RoomCategoryRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, Bas
 class RoomParticipantListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = RoomParticipant.objects.all()
     serializer_class = RoomParticipantSerializer
+    filterset_fields = ['room']
     permit_list_expands = ['room', 'user']
 
 
@@ -112,44 +113,62 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
 
 
 class JoinRoomAPIView(APIView):
-    """API cho phép user tham gia phòng."""
-
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
 
-        # Kiểm tra xem user đã ở trong phòng chưa
         participant, created = RoomParticipant.objects.get_or_create(room=room, user=user)
 
+        # Kiểm tra nếu là phòng riêng và người tham gia chưa được phê duyệt
         if room.type == "PRIVATE" and not participant.is_approved:
+            participant.is_out = True
+            participant.save()
+
+            # Đảm bảo gửi danh sách yêu cầu đúng
+            channel_layer = get_channel_layer()
+            pending_requests = list(
+                RoomParticipant.objects.filter(room=room, is_approved=False)
+                .select_related('user')
+            )
+            request_list = [UserSerializer(request.user).data for request in pending_requests]
+
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{room.id}',
+                {
+                    'type': 'update_pending_requests',
+                    'requests': request_list
+                }
+            )
+
             return Response({'message': 'Waiting for admin approval'}, status=status.HTTP_202_ACCEPTED)
 
-        participant.is_out = False  # Đánh dấu user đang ở trong phòng
-        participant.is_approved = True  # Nếu phòng PUBLIC thì approved luôn
-        participant.save()
+        # Nếu đã được phê duyệt, cho phép tham gia
+        if participant.is_approved:
+            participant.is_out = False
+            participant.save()
 
-        channel_layer = get_channel_layer()
-        user = UserSerializer(user).data
-        async_to_sync(channel_layer.group_send)(
-            f'chat_{room.id}',
-            {'type': 'user_joined', 'user': user}
-        )
+            channel_layer = get_channel_layer()
+            user_data = UserSerializer(user).data
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{room.id}',
+                {'type': 'user_joined', 'user': user_data}
+            )
 
-        return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
+
+        # Nếu chưa phê duyệt và không phải phòng công cộng, trả lại yêu cầu chờ
+        return Response({'message': 'You are still waiting for approval'}, status=status.HTTP_202_ACCEPTED)
 
 
 class LeaveRoomAPIView(APIView):
-    """API cho phép user rời phòng."""
-
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
 
         participant = get_object_or_404(RoomParticipant, room=room, user=user)
-        participant.is_out = True  # Đánh dấu là đã rời phòng
+        participant.is_out = True
         participant.save()
 
-        # Gửi sự kiện WebSocket thông báo user rời phòng
         channel_layer = get_channel_layer()
         user = UserSerializer(user).data
         async_to_sync(channel_layer.group_send)(
@@ -158,3 +177,47 @@ class LeaveRoomAPIView(APIView):
         )
 
         return Response({'message': 'Left room successfully!'}, status=status.HTTP_200_OK)
+
+
+class ApproveJoinRequestAPIView(APIView):
+    def post(self, request, code_invite, user_id):
+        room = get_object_or_404(Room, code_invite=code_invite)
+        participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
+
+        if participant.is_approved:
+            return Response({'message': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        participant.is_approved = True
+        participant.save()
+
+        channel_layer = get_channel_layer()
+
+        # Gửi thông báo cho người được phê duyệt (người tham gia)
+        user_data = UserSerializer(participant.user).data
+        # Gửi thông báo tới người dùng đã được phê duyệt
+        async_to_sync(channel_layer.group_send)(
+            f'user_{participant.user.id}',
+            {
+                'type': 'user_approved',
+                'user': user_data
+            }
+        )
+
+        # Cập nhật danh sách yêu cầu
+        pending_requests = list(
+            RoomParticipant.objects.filter(room=room, is_approved=False)
+            .select_related('user')
+        )
+        request_list = [UserSerializer(request.user).data for request in pending_requests]
+
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{room.id}',
+            {
+                'type': 'update_pending_requests',
+                'requests': request_list
+            }
+        )
+
+        return Response({'message': 'User has been approved successfully!'}, status=status.HTTP_200_OK)
+
+

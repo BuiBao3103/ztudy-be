@@ -1,5 +1,6 @@
 from allauth.account.models import EmailAddress
 from dj_rest_auth.registration.serializers import RegisterSerializer
+from pandas.core.dtypes.inference import is_re
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 from .models import (BackgroundVideoType, BackgroundVideo,
@@ -135,7 +136,7 @@ class RoomSerializer(FlexFieldsModelSerializer):
         room = super().create(validated_data)
 
         if room.creator_user:
-            RoomParticipant.objects.create(room=room, user=room.creator_user, is_admin=True)
+            RoomParticipant.objects.create(room=room, user=room.creator_user, is_admin=True, is_approved=True, is_out=True)
 
         return room
 
