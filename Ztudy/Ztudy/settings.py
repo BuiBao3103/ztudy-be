@@ -264,12 +264,15 @@ CLOUDINARY_STORAGE = {
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_TZ = False
 
+# settings.py
+LEADERBOARD_RESET_INTERVAL = 2  # Thời gian reset bảng xếp hạng (phút)
+
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
     'update_leaderboards': {
         'task': 'api.tasks.update_leaderboards',
-        'schedule': timedelta(minutes=30),
-        'options': {'expires': 29 * 60}  # Expires before the next task runs
+        'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
+        'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}  # Expires before next run
     },
 }

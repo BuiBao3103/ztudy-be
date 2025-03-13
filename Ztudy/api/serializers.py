@@ -136,7 +136,8 @@ class RoomSerializer(FlexFieldsModelSerializer):
         room = super().create(validated_data)
 
         if room.creator_user:
-            RoomParticipant.objects.create(room=room, user=room.creator_user, is_admin=True, is_approved=True, is_out=True)
+            RoomParticipant.objects.create(room=room, user=room.creator_user, is_admin=True, is_approved=True,
+                                           is_out=True)
 
         return room
 
@@ -206,3 +207,12 @@ class CustomUserDetailsSerializer(UserDetailsSerializer):
         model = User
         exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups',
                    'user_permissions']
+
+
+class LeaderboardUserSerializer(serializers.ModelSerializer):
+    total_time = serializers.FloatField()
+    rank = serializers.IntegerField()
+
+    class Meta:
+        model = User  # Assuming User is your user model
+        fields = ['id', 'username', 'rank', 'total_time', 'avatar']  # Add other fields you want to include
