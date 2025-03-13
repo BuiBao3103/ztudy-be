@@ -265,7 +265,7 @@ TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_TZ = False
 
 # settings.py
-LEADERBOARD_RESET_INTERVAL = 2  # Thời gian reset bảng xếp hạng (phút)
+LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
