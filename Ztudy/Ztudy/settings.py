@@ -276,3 +276,19 @@ CELERY_BEAT_SCHEDULE = {
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}  # Expires before next run
     },
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}

@@ -90,6 +90,18 @@ class StudyTimeChartView(APIView):
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
+import time
+import logging
+from rest_framework import generics, status
+from rest_framework.response import Response
+import redis
+
+# Thiết lập logging
+logger = logging.getLogger(__name__)
+
+# Kết nối Redis
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
 
 class LeaderboardView(generics.ListAPIView):
     """
@@ -100,7 +112,7 @@ class LeaderboardView(generics.ListAPIView):
 
     def get(self, request, period):
         if period not in ['today', 'week', 'month']:
-            return Response({"error": "Period must be one of: today, week, month"}, status=400)
+            return Response({"error": "Invalid period. Use: today, week, month"}, status=status.HTTP_400_BAD_REQUEST)
 
         current_time = time.time()
         next_update_timestamp = redis_client.get('leaderboard:next_update')
@@ -108,116 +120,99 @@ class LeaderboardView(generics.ListAPIView):
         zset_key = f'leaderboard:{period}:zset'
         zset_exists = redis_client.exists(zset_key)
 
-        # Tính toán thời gian đến lần cập nhật tiếp theo
+        # Tính thời gian đến lần cập nhật tiếp theo
         if next_update_timestamp:
             next_update_timestamp = float(next_update_timestamp)
             time_until_next_update = next_update_timestamp - current_time
+            if time_until_next_update < 0:
+                time_until_next_update = 0
         else:
             time_until_next_update = 0
 
-        # Nếu đang cập nhật, trả về thông báo ngay lập tức
+        # Nếu đang cập nhật
         if is_updating:
+            logger.info(f"Leaderboard {period} is being updated")
             return Response({
                 "message": "Leaderboard is being updated, please try again in a few seconds",
                 "next_update_timestamp": next_update_timestamp,
                 "seconds_until_next_update": 0
-            }, status=503)
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        # Nếu ZSET không tồn tại hoặc thời gian cập nhật đã hết, thông báo đang chuẩn bị
-        if not zset_exists or time_until_next_update <= 0:
+        # Nếu ZSET không tồn tại
+        if not zset_exists:
+            logger.warning(f"Leaderboard {period} ZSET does not exist")
             return Response({
                 "message": "Leaderboard is being prepared or not ready, please try again shortly",
                 "next_update_timestamp": next_update_timestamp,
-                "seconds_until_next_update": max(0, int(time_until_next_update))
-            }, status=503)
+                "seconds_until_next_update": int(time_until_next_update)
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        # Chỉ trả về dữ liệu nếu ZSET tồn tại và không đang cập nhật
-        if zset_exists and not is_updating:
-            # Lấy tổng số user để phân trang
-            total_users = redis_client.zcard(zset_key)
+        # Lấy dữ liệu từ Redis
+        total_users = redis_client.zcard(zset_key)
+        paginator = self.pagination_class()
+        page_size = paginator.get_page_size(request)
+        page_number = request.query_params.get(paginator.page_query_param, 1)
 
-            # Tạo instance phân trang
-            paginator = self.pagination_class()
-            page_size = paginator.get_page_size(request)
+        try:
+            page_number = int(page_number)
+        except ValueError:
+            page_number = 1
 
-            # Lấy số trang từ request
-            page_number = request.query_params.get(paginator.page_query_param, 1)
-            try:
-                page_number = int(page_number)
-            except ValueError:
-                page_number = 1
+        start_idx = (page_number - 1) * page_size
+        end_idx = start_idx + page_size - 1
 
-            # Tính toán chỉ số Redis
-            start_idx = (page_number - 1) * page_size
-            end_idx = start_idx + page_size - 1
-
-            # Lấy dữ liệu từ Redis ZSET với xếp hạng
-            leaderboard_tuples = redis_client.zrevrange(zset_key, start_idx, end_idx, withscores=True)
-
-            if not leaderboard_tuples:
-                return Response({
-                    "leaderboard": {
-                        "count": total_users,
-                        "next": None,
-                        "previous": None,
-                        "results": []
-                    },
-                    "next_update_timestamp": next_update_timestamp,
-                    "seconds_until_next_update": max(0, int(time_until_next_update))
-                })
-
-            # Trích xuất user IDs và ánh xạ rank/score
-            user_ids = []
-            user_data_map = {}
-            for i, (user_id, score) in enumerate(leaderboard_tuples):
-                user_id_int = int(user_id.decode()) if isinstance(user_id, bytes) else int(user_id)
-                user_ids.append(user_id_int)
-                user_data_map[user_id_int] = {
-                    'rank': start_idx + i + 1,
-                    'total_time': round(score / 10, 1)  # Chuyển từ scaled score về 1 chữ số thập phân
-                }
-
-            # Lấy thông tin user từ database
-            users = User.objects.filter(id__in=user_ids)
-
-            # Tạo danh sách dữ liệu user để serialize
-            user_data_list = []
-            for user in users:
-                if user.id in user_data_map:
-                    user_dict = {
-                        'id': user.id,
-                        'username': user.username,
-                        'avatar': user.avatar.url if hasattr(user, 'avatar') and user.avatar else None,
-                        'rank': user_data_map[user.id]['rank'],
-                        'total_time': user_data_map[user.id]['total_time']
-                    }
-                    user_data_list.append(user_dict)
-
-            # Sắp xếp theo rank
-            user_data_list.sort(key=lambda x: x['rank'])
-
-            # Tạo thông tin phân trang
-            base_url = request.build_absolute_uri().split('?')[0]
-            next_page = page_number + 1 if (page_number * page_size) < total_users else None
-            previous_page = page_number - 1 if page_number > 1 else None
-
-            # Phản hồi với dữ liệu phân trang
-            response_data = {
+        leaderboard_tuples = redis_client.zrevrange(zset_key, start_idx, end_idx, withscores=True)
+        if not leaderboard_tuples:
+            return Response({
                 "leaderboard": {
                     "count": total_users,
-                    "next": f"{base_url}?page={next_page}" if next_page else None,
-                    "previous": f"{base_url}?page={previous_page}" if previous_page else None,
-                    "results": user_data_list
+                    "next": None,
+                    "previous": None,
+                    "results": []
                 },
                 "next_update_timestamp": next_update_timestamp,
-                "seconds_until_next_update": max(0, int(time_until_next_update))
+                "seconds_until_next_update": int(time_until_next_update)
+            })
+
+        # Chuẩn bị dữ liệu user
+        user_ids = []
+        user_data_map = {}
+        for i, (user_id, score) in enumerate(leaderboard_tuples):
+            user_id_int = int(user_id.decode() if isinstance(user_id, bytes) else user_id)
+            user_ids.append(user_id_int)
+            user_data_map[user_id_int] = {
+                'rank': start_idx + i + 1,
+                'total_time': round(score / 10, 1)  # Chuyển từ scaled score về thời gian gốc
             }
 
-            return Response(response_data)
+        users = User.objects.filter(id__in=user_ids)
+        user_data_list = []
+        for user in users:
+            if user.id in user_data_map:
+                user_dict = {
+                    'id': user.id,
+                    'username': user.username,
+                    'avatar': user.avatar.url if hasattr(user, 'avatar') and user.avatar else None,
+                    'rank': user_data_map[user.id]['rank'],
+                    'total_time': user_data_map[user.id]['total_time']
+                }
+                user_data_list.append(user_dict)
 
-        # Trường hợp dự phòng (không nên xảy ra với logic trên)
-        return Response({
-            "message": "Waiting for next leaderboard update",
+        user_data_list.sort(key=lambda x: x['rank'])
+
+        # Tạo thông tin phân trang
+        base_url = request.build_absolute_uri().split('?')[0]
+        next_page = page_number + 1 if (page_number * page_size) < total_users else None
+        previous_page = page_number - 1 if page_number > 1 else None
+
+        response_data = {
+            "leaderboard": {
+                "count": total_users,
+                "next": f"{base_url}?page={next_page}" if next_page else None,
+                "previous": f"{base_url}?page={previous_page}" if previous_page else None,
+                "results": user_data_list
+            },
             "next_update_timestamp": next_update_timestamp,
-            "seconds_until_next_update": max(0, int(time_until_next_update))
-        }, status=503)
+            "seconds_until_next_update": int(time_until_next_update)
+        }
+        return Response(response_data)
