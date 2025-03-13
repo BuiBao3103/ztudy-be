@@ -1,12 +1,15 @@
 from django.db.models.functions import TruncDate
 from django.utils.timezone import now, timedelta
 from django.db.models import Sum
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from ..models import StudySession
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.views import APIView
+from rest_framework.response import Response
+import redis
+import json
+import time
 
 
 class StudyTimeStatsView(APIView):
@@ -80,3 +83,47 @@ class StudyTimeChartView(APIView):
         ]
 
         return Response({"data": response_data})
+
+
+class LeaderboardView(APIView):
+    """
+    API to retrieve leaderboards
+    """
+
+    def get(self, request, period):
+        # Connect to Redis
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+        # Check if period is valid
+        if period not in ['today', 'week', 'month']:
+            return Response({"error": "Period must be one of: today, week, month"}, status=400)
+
+        # Get leaderboard from Redis
+        leaderboard_data = redis_client.get(f'leaderboard:{period}')
+
+        # Get next update time
+        next_update_timestamp = redis_client.get('leaderboard:next_update')
+
+        if next_update_timestamp:
+            next_update_timestamp = float(next_update_timestamp)
+            # Calculate seconds until next update (for backwards compatibility)
+            time_until_next_update = next_update_timestamp - time.time()
+        else:
+            # If no data about update time
+            next_update_timestamp = None
+            time_until_next_update = 0
+
+        if leaderboard_data:
+            leaderboard = json.loads(leaderboard_data)
+            return Response({
+                "leaderboard": leaderboard,
+                "next_update_timestamp": next_update_timestamp,
+                "seconds_until_next_update": max(0, int(time_until_next_update))
+            })
+        else:
+            # If no data in Redis, return pending status
+            return Response({
+                "message": "Creating leaderboard, please try again later",
+                "next_update_timestamp": next_update_timestamp,
+                "seconds_until_next_update": max(0, int(time_until_next_update))
+            })

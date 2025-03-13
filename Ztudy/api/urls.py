@@ -80,6 +80,7 @@ urlpatterns = [
     # Stats URLs
     path('api/v1/stats/study-time/', views.StudyTimeStatsView.as_view(), name='study-time-stats'),
     path('api/v1/stats/study-time-chart/', views.StudyTimeChartView.as_view(), name='study-time-chart'),
+    path('api/v1/stats/leaderboard/<str:period>/', views.LeaderboardView.as_view(), name='leader-board'),
 
     # Auth URLs
     path('api/v1/auth/', include('dj_rest_auth.urls')),

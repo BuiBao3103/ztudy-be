@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'channels',
-    'api',
+    'api.apps.ApiConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'dj_rest_auth',
@@ -263,3 +263,13 @@ CLOUDINARY_STORAGE = {
 }
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_TZ = False
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BEAT_SCHEDULE = {
+    'update_leaderboards': {
+        'task': 'api.tasks.update_leaderboards',
+        'schedule': timedelta(minutes=30),
+        'options': {'expires': 29 * 60}  # Expires before the next task runs
+    },
+}
