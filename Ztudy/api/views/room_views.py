@@ -121,25 +121,32 @@ class JoinRoomAPIView(APIView):
 
         # Check if private room and not approved
         if room.type == "PRIVATE" and not participant.is_approved:
-            participant.is_out = False  # Keep them in the room, but waiting for approval
+            participant.is_out = True
             participant.save()
 
             # Get all pending requests
             pending_requests = list(
-                RoomParticipant.objects.filter(room=room, is_approved=False, is_out=False)
+                RoomParticipant.objects.filter(room=room, is_approved=False)
                 .select_related('user')
             )
             request_list = [UserSerializer(req.user).data for req in pending_requests]
 
-            # Broadcast updated pending request list
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f'chat_{room.id}',
-                {
-                    'type': 'update_pending_requests',
-                    'requests': request_list
-                }
+            # Get all admin participants
+            admin_participants = list(
+                RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
             )
+
+            # Send the pending requests only to admin users
+            channel_layer = get_channel_layer()
+            for admin in admin_participants:
+                admin_user_group = f'user_{admin.user.id}'
+                async_to_sync(channel_layer.group_send)(
+                    admin_user_group,
+                    {
+                        'type': 'update_pending_requests',
+                        'requests': request_list
+                    }
+                )
 
             return Response({'message': 'Waiting for admin approval'}, status=status.HTTP_202_ACCEPTED)
 
@@ -198,7 +205,7 @@ class ApproveJoinRequestAPIView(APIView):
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
         if participant.is_approved:
-            return Response({'message': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant.is_approved = True
         participant.is_out = False  # Set is_out to False so user is active in the room
@@ -224,14 +231,22 @@ class ApproveJoinRequestAPIView(APIView):
             RoomParticipant.objects.filter(room=room, is_approved=False)
             .select_related('user')
         )
-        request_list = [UserSerializer(request.user).data for request in pending_requests]
+        request_list = [UserSerializer(req.user).data for req in pending_requests]
 
-        async_to_sync(channel_layer.group_send)(
-            f'chat_{room.id}',
-            {
-                'type': 'update_pending_requests',
-                'requests': request_list
-            }
+        # Get all admin participants
+        admin_participants = list(
+            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
         )
+
+        # Send the pending requests only to admin users
+        for admin in admin_participants:
+            admin_user_group = f'user_{admin.user.id}'
+            async_to_sync(channel_layer.group_send)(
+                admin_user_group,
+                {
+                    'type': 'update_pending_requests',
+                    'requests': request_list
+                }
+            )
 
         return Response({'message': 'User has been approved successfully!'}, status=status.HTTP_200_OK)
