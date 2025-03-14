@@ -59,8 +59,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.broadcast_user_list()
 
-        # If this is an admin/approved user, send them the pending requests list
-        if participant.is_admin or (self.room.type == "PRIVATE" and participant.is_approved):
+        # If this is an admin, send them the pending requests list
+        if participant.is_admin:
             await self.broadcast_pending_requests()
 
     async def user_approved(self, event):
@@ -73,11 +73,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Add user to room group
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-
-            # Update participant status
-            await sync_to_async(
-                lambda: RoomParticipant.objects.filter(room=self.room, user=self.user).update(is_out=False,
-                                                                                              is_approved=True))()
 
             # Notify user about approval
             await self.send(text_data=json.dumps({
@@ -216,14 +211,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 user_data = UserSerializer(participant.user).data
                 request_list.append(user_data)
 
-            # Send the pending requests list to everyone in the room
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'update_pending_requests',
-                    'requests': request_list
-                }
+            # Get all admin participants
+            admin_participants = await sync_to_async(list)(
+                RoomParticipant.objects.filter(room=self.room, is_admin=True).select_related('user')
             )
+
+            # Send the pending requests only to admin users
+            for admin in admin_participants:
+                admin_user_group = f'user_{admin.user.id}'
+                await self.channel_layer.group_send(
+                    admin_user_group,
+                    {
+                        'type': 'update_pending_requests',
+                        'requests': request_list
+                    }
+                )
         except Exception as e:
             print(f"Error in broadcast_pending_requests: {str(e)}")
 
