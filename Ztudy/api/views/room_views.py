@@ -113,6 +113,7 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
 
 
 class JoinRoomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
@@ -181,6 +182,7 @@ class JoinRoomAPIView(APIView):
 
 
 class LeaveRoomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
