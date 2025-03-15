@@ -41,7 +41,7 @@ const Register = () => {
         formData.password2
       );
       setCurrentUser(response.data);
-      navigate('/rooms');
+      navigate('/');
     } catch (err) {
       const errorMessage = err.response?.data;
       let errorText = 'Registration failed. Please try again.';

@@ -39,29 +39,34 @@ export const logout = async () => {
 };
 
 export const register = async (username, email, password1, password2) => {
-  return await axios.post("/api/v1/auth/registration/", {
+  const response = await axios.post("/api/v1/auth/registration/", {
     username,
     email,
     password1,
     password2,
   });
+  if (response.status === 201) {
+    return await login(email, password1);
+  }
 };
 
 export const joinRoom = async (roomCode) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/v1/rooms/${roomCode}/join/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Để gửi cookies
-    });
-    
+    const response = await fetch(
+      `http://localhost:8000/api/v1/rooms/${roomCode}/join/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Để gửi cookies
+      }
+    );
 
     const data = await response.json();
-    
+
     if (!response.ok) {
-      throw new Error(data.detail || 'Failed to join room');
+      throw new Error(data.detail || "Failed to join room");
     }
     data.status = response.status;
     return data;
@@ -72,16 +77,19 @@ export const joinRoom = async (roomCode) => {
 
 export const approveRequest = async (roomCode, requestId) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/v1/rooms/${roomCode}/approve/${requestId}/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    const response = await fetch(
+      `http://localhost:8000/api/v1/rooms/${roomCode}/approve/${requestId}/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to approve request');
+      throw new Error("Failed to approve request");
     }
 
     return await response.json();
