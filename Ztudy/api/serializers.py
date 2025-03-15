@@ -20,14 +20,16 @@ class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
         if 'name' in validated_data:
             validated_data['name'] = encode_emoji(validated_data['name'])
         if 'description' in validated_data:
-            validated_data['description'] = encode_emoji(validated_data['description'])
+            validated_data['description'] = encode_emoji(
+                validated_data['description'])
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         if 'name' in validated_data:
             validated_data['name'] = encode_emoji(validated_data['name'])
         if 'description' in validated_data:
-            validated_data['description'] = encode_emoji(validated_data['description'])
+            validated_data['description'] = encode_emoji(
+                validated_data['description'])
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -131,7 +133,8 @@ class RoomSerializer(FlexFieldsModelSerializer):
 
     def create(self, validated_data):
         if 'code_invite' not in validated_data or not validated_data['code_invite']:
-            validated_data['code_invite'] = generate_unique_code(Room, 'code_invite', 6)
+            validated_data['code_invite'] = generate_unique_code(
+                Room, 'code_invite', 6)
 
         room = super().create(validated_data)
 
@@ -149,6 +152,15 @@ class RoomSerializer(FlexFieldsModelSerializer):
             'category': RoomCategorySerializer,
             'creator_user': UserSerializer
         }
+
+
+class RoomJoinSerializer(serializers.ModelSerializer):
+    thumbnail = serializers.ImageField(required=False, allow_null=True)
+    category = RoomCategorySerializer(read_only=True)
+
+    class Meta:
+        model = Room
+        fields = '__all__'
 
 
 class ThumbnailUploadSerializer(serializers.Serializer):
@@ -215,4 +227,5 @@ class LeaderboardUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User  # Assuming User is your user model
-        fields = ['id', 'username', 'rank', 'total_time', 'avatar']  # Add other fields you want to include
+        # Add other fields you want to include
+        fields = ['id', 'username', 'rank', 'total_time', 'avatar']

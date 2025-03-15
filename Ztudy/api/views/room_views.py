@@ -1,7 +1,7 @@
 from rest_flex_fields.views import FlexFieldsMixin
 from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, User
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
-    UserSerializer
+    UserSerializer, RoomJoinSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..pagination import CustomPagination
 from ..ml import content_based_filtering, collaborative_filtering
@@ -37,7 +37,8 @@ class UploadThumbnailView(generics.CreateAPIView):
 
     @swagger_auto_schema(
         request_body=ThumbnailUploadSerializer,
-        responses={201: openapi.Response('Thumbnail uploaded successfully', ThumbnailUploadSerializer)},
+        responses={201: openapi.Response(
+            'Thumbnail uploaded successfully', ThumbnailUploadSerializer)},
         operation_description="Upload an thumbnail image to Cloudinary",
     )
     def post(self, request, *args, **kwargs):
@@ -114,27 +115,33 @@ class SuggestedRoomsAPIView(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAP
 
 class JoinRoomAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
 
-        participant, created = RoomParticipant.objects.get_or_create(room=room, user=user)
+        room_data = RoomJoinSerializer(room).data
+        participant, created = RoomParticipant.objects.get_or_create(
+            room=room, user=user)
 
         # Check if private room and not approved
         if room.type == "PRIVATE" and not participant.is_approved:
             participant.is_out = True
             participant.save()
+            participant_data = RoomParticipantSerializer(participant).data
 
             # Get all pending requests
             pending_requests = list(
                 RoomParticipant.objects.filter(room=room, is_approved=False)
                 .select_related('user')
             )
-            request_list = [UserSerializer(req.user).data for req in pending_requests]
+            request_list = [UserSerializer(
+                req.user).data for req in pending_requests]
 
             # Get all admin participants
             admin_participants = list(
-                RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
+                RoomParticipant.objects.filter(
+                    room=room, is_admin=True).select_related('user')
             )
 
             # Send the pending requests only to admin users
@@ -149,12 +156,16 @@ class JoinRoomAPIView(APIView):
                     }
                 )
 
-            return Response({'message': 'Waiting for admin approval'}, status=status.HTTP_202_ACCEPTED)
+            return Response(
+                {'message': 'Waiting for admin approval',
+                 'room': room_data,
+                 'participant': participant_data},
+                status=status.HTTP_202_ACCEPTED)
 
         # If already approved, allow joining
         if participant.is_approved:
             participant.save()
-
+            participant_data = RoomParticipantSerializer(participant).data
             channel_layer = get_channel_layer()
             user_data = UserSerializer(user).data
             async_to_sync(channel_layer.group_send)(
@@ -162,13 +173,15 @@ class JoinRoomAPIView(APIView):
                 {'type': 'user_joined', 'user': user_data}
             )
 
-            return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Joined room successfully!',
+                             'room': room_data,
+                             'participant': participant_data}, status=status.HTTP_200_OK)
 
         # If public room, auto-approve
         if room.type == "PUBLIC":
             participant.is_approved = True
             participant.save()
-
+            participant_data = RoomParticipantSerializer(participant).data
             channel_layer = get_channel_layer()
             user_data = UserSerializer(user).data
             async_to_sync(channel_layer.group_send)(
@@ -176,13 +189,18 @@ class JoinRoomAPIView(APIView):
                 {'type': 'user_joined', 'user': user_data}
             )
 
-            return Response({'message': 'Joined room successfully!'}, status=status.HTTP_200_OK)
+            return Response(
+                {'message': 'Joined room successfully!',
+                 'room': room_data,
+                 'participant': participant_data},
+                status=status.HTTP_200_OK)
 
         return Response({'message': 'You are still waiting for approval'}, status=status.HTTP_202_ACCEPTED)
 
 
 class LeaveRoomAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
         user = request.user
@@ -204,7 +222,8 @@ class LeaveRoomAPIView(APIView):
 class ApproveJoinRequestAPIView(APIView):
     def post(self, request, code_invite, user_id):
         room = get_object_or_404(Room, code_invite=code_invite)
-        participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
+        participant = get_object_or_404(
+            RoomParticipant, room=room, user_id=user_id)
 
         if participant.is_approved:
             return Response({'detail': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
@@ -233,11 +252,13 @@ class ApproveJoinRequestAPIView(APIView):
             RoomParticipant.objects.filter(room=room, is_approved=False)
             .select_related('user')
         )
-        request_list = [UserSerializer(req.user).data for req in pending_requests]
+        request_list = [UserSerializer(
+            req.user).data for req in pending_requests]
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
+            RoomParticipant.objects.filter(
+                room=room, is_admin=True).select_related('user')
         )
 
         # Send the pending requests only to admin users
