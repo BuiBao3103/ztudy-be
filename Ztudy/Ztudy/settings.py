@@ -141,16 +141,21 @@ DATABASES = {
 ACCESS_TOKEN_LIFETIME = int(os.getenv('ACCESS_TOKEN_LIFETIME', 1))
 REFRESH_TOKEN_LIFETIME = int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 1))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))),
+    'AUTH_COOKIE': 'access_token',  # Tên cookie chứa access token
+    'AUTH_COOKIE_REFRESH': 'refresh_token',  # Tên cookie chứa refresh token
+    'AUTH_COOKIE_DOMAIN': None,    # Domain của cookie
+    'AUTH_COOKIE_SECURE': False,   # Set True nếu dùng HTTPS
+    'AUTH_COOKIE_HTTP_ONLY': False, # Set True nếu không muốn JavaScript truy cập cookie
+    'AUTH_COOKIE_PATH': '/',      # Path của cookie
+    'AUTH_COOKIE_SAMESITE': 'Lax', # Chính sách SameSite của cookie
 }
 
 # dj-rest-auth
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_COOKIE": "access_token",  # Name of access token cookie
-    "JWT_AUTH_REFRESH_COOKIE": "refresh_token",  # Name of refresh token cookie
-    "JWT_AUTH_HTTPONLY": False,  # Makes sure refresh token is sent
+    "JWT_AUTH_COOKIE": "access_token",
+    "JWT_AUTH_REFRESH_COOKIE": "refresh_token",
+    "JWT_AUTH_HTTPONLY": False,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
 }
 
