@@ -22,7 +22,8 @@ from datetime import timedelta
 env_path = Path(__file__).resolve().parent.parent / '.env'
 
 if not env_path.exists():
-    raise FileNotFoundError(f".env file is missing. Please create the .env file in the root directory.")
+    raise FileNotFoundError(
+        f".env file is missing. Please create the .env file in the root directory.")
 
 load_dotenv(dotenv_path=env_path)
 
@@ -138,16 +139,20 @@ DATABASES = {
         },
     }
 }
-ACCESS_TOKEN_LIFETIME = int(os.getenv('ACCESS_TOKEN_LIFETIME', 1))
+ACCESS_TOKEN_LIFETIME = int(os.getenv('ACCESS_TOKEN_LIFETIME', 5))
 REFRESH_TOKEN_LIFETIME = int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))
 SIMPLE_JWT = {
-    'AUTH_COOKIE': 'access_token',  # Tên cookie chứa access token
-    'AUTH_COOKIE_REFRESH': 'refresh_token',  # Tên cookie chứa refresh token
-    'AUTH_COOKIE_DOMAIN': None,    # Domain của cookie
-    'AUTH_COOKIE_SECURE': False,   # Set True nếu dùng HTTPS
-    'AUTH_COOKIE_HTTP_ONLY': False, # Set True nếu không muốn JavaScript truy cập cookie
-    'AUTH_COOKIE_PATH': '/',      # Path của cookie
-    'AUTH_COOKIE_SAMESITE': 'Lax', # Chính sách SameSite của cookie
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=ACCESS_TOKEN_LIFETIME),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=REFRESH_TOKEN_LIFETIME),
+    'ROTATE_REFRESH_TOKENS': True,
+    # 'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_DOMAIN': None,
+    'AUTH_COOKIE_SECURE': False,
+    'AUTH_COOKIE_HTTP_ONLY': False,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',  # Chính sách SameSite của cookie
 }
 
 # dj-rest-auth
@@ -155,7 +160,7 @@ REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_COOKIE": "access_token",
     "JWT_AUTH_REFRESH_COOKIE": "refresh_token",
-    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_HTTPONLY": True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
 }
 
@@ -206,8 +211,10 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"  # optional | mandatory | none
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # No need to sent POST request to confirmation link
-LOGIN_URL = "api/v1/admin"  # Path, users will be redirected to after email verification
+# No need to sent POST request to confirmation link
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+# Path, users will be redirected to after email verification
+LOGIN_URL = "api/v1/admin"
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/api/v1/auth/login/'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/'
 ACCOUNT_LOGIN_REDIRECT_URL = '/'
@@ -278,7 +285,8 @@ CELERY_BEAT_SCHEDULE = {
     'update_leaderboards': {
         'task': 'api.tasks.update_leaderboards',
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
-        'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}  # Expires before next run
+        # Expires before next run
+        'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
     },
 }
 
