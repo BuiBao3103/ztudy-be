@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { UserContext } from './UserContext';
-import { ChatContext } from './ChatContext';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { UserContext } from "./UserContext";
+import { ChatContext } from "./ChatContext";
 
 export const WebSocketContext = createContext({
   onlineSocket: null,
@@ -16,90 +22,86 @@ export const WebSocketProvider = ({ children }) => {
   const [onlineSocket, setOnlineSocket] = useState(null);
   const [chatSocket, setChatSocket] = useState(null);
   const { currentUser } = useContext(UserContext);
-  const { 
-    setMessages, 
-    setParticipants, 
+  const {
+    setMessages,
+    setParticipants,
     setCurrentRoom,
     setIsConnected,
     setTypingUsers,
+    setIsPending,
+    setPendingRequests,
   } = useContext(ChatContext);
-
-  // Xử lý typing timeout
-  const handleTypingTimeout = useCallback((userId) => {
-    setTypingUsers(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
-  }, [setTypingUsers]);
 
   const connectChatSocket = (roomCode) => {
     if (!roomCode) return;
 
     const ws = new WebSocket(`ws://localhost:8000/ws/chat/${roomCode}/`);
-    
+
     ws.onopen = () => {
-      console.log('Chat WebSocket Connected');
+      console.log("Chat WebSocket Connected");
       setIsConnected(true);
     };
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received message:', data);
+      console.log("Received message:", data);
 
       switch (data.type) {
-        case 'chat_message':
-          setMessages(prev => [...prev, {
-            content: data.message,
-            user: data.user,
-            timestamp: new Date().toISOString()
-          }]);
+        case "chat_message":
+          setMessages((prev) => [
+            ...prev,
+            {
+              content: data.message,
+              user: data.user,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
           // Khi có tin nhắn mới, xóa trạng thái typing của người gửi
-          setTypingUsers(prev => {
+          setTypingUsers((prev) => {
             const newSet = new Set(prev);
             newSet.delete(data.user.id);
             return newSet;
           });
           break;
 
-        case 'user_joined':
-          setParticipants(prev => {
-            if (!prev.find(p => p.id === data.user.id)) {
+        case "user_joined":
+          setParticipants((prev) => {
+            if (!prev.find((p) => p.id === data.user.id)) {
               return [...prev, data.user];
             }
             return prev;
           });
           break;
 
-        case 'user_left':
-          setParticipants(prev => 
-            prev.filter(user => user.id !== data.user.id)
+        case "user_left":
+          setParticipants((prev) =>
+            prev.filter((user) => user.id !== data.user.id)
           );
           break;
 
-        case 'user_list':
+        case "user_list":
           setParticipants(data.users);
           break;
 
-        case 'typing_status':
-          console.log('Typing status received:', data); // Debug log
+        case "typing_status":
+          console.log("Typing status received:", data); // Debug log
           if (data.user.id !== currentUser?.id) {
             if (data.is_typing) {
-              setTypingUsers(prev => {
+              setTypingUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.add(data.user.id);
                 return newSet;
               });
               // Tự động xóa trạng thái typing sau 3 giây
               setTimeout(() => {
-                setTypingUsers(prev => {
+                setTypingUsers((prev) => {
                   const newSet = new Set(prev);
                   newSet.delete(data.user.id);
                   return newSet;
                 });
               }, 3000);
             } else {
-              setTypingUsers(prev => {
+              setTypingUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(data.user.id);
                 return newSet;
@@ -108,25 +110,45 @@ export const WebSocketProvider = ({ children }) => {
           }
           break;
 
-        case 'error':
-          console.error('WebSocket Error:', data.message);
+        case "error":
+          console.error("WebSocket Error:", data.message);
           setIsConnected(false);
           ws.close();
           break;
 
+        case "pending_requests":
+          console.log("Received pending requests:", data.requests); // Debug log
+          setPendingRequests(data.requests);
+          setIsConnected(true);
+          break;
+
+        case "user_approved":
+          console.log("Before state update - isConnected:", setIsConnected);
+          console.log("Before state update - isPending:", setIsPending);
+          
+          setIsConnected(true);
+          setIsPending(false);
+          
+          // Thêm timeout để kiểm tra state sau khi update
+          setTimeout(() => {
+            console.log("After state update - isConnected:", setIsConnected);
+            console.log("After state update - isPending:", setIsPending);
+          }, 100);
+          break;
+
         default:
-          console.log('Unhandled message type:', data.type);
+          console.log("Unhandled message type:", data.type);
       }
     };
 
     ws.onclose = () => {
-      console.log('Chat WebSocket Disconnected');
+      console.log("Chat WebSocket Disconnected");
       setChatSocket(null);
       setIsConnected(false);
     };
 
     ws.onerror = (error) => {
-      console.error('Chat WebSocket Error:', error);
+      console.error("Chat WebSocket Error:", error);
       setChatSocket(null);
       setIsConnected(false);
     };
@@ -136,19 +158,19 @@ export const WebSocketProvider = ({ children }) => {
 
   const connectOnlineSocket = () => {
     if (currentUser && !onlineSocket) {
-      const ws = new WebSocket('ws://localhost:8000/ws/online/');
-      
+      const ws = new WebSocket("ws://localhost:8000/ws/online/");
+
       ws.onopen = () => {
-        console.log('Online Status WebSocket Connected');
+        console.log("Online Status WebSocket Connected");
       };
 
       ws.onclose = () => {
-        console.log('Online Status WebSocket Disconnected');
+        console.log("Online Status WebSocket Disconnected");
         setOnlineSocket(null);
       };
 
       ws.onerror = (error) => {
-        console.error('Online Status WebSocket Error:', error);
+        console.error("Online Status WebSocket Error:", error);
         setOnlineSocket(null);
       };
 
@@ -170,10 +192,12 @@ export const WebSocketProvider = ({ children }) => {
 
   const sendTypingStatus = (isTyping) => {
     if (chatSocket) {
-      chatSocket.send(JSON.stringify({
-        type: 'typing',
-        is_typing: isTyping
-      }));
+      chatSocket.send(
+        JSON.stringify({
+          type: "typing",
+          is_typing: isTyping,
+        })
+      );
     }
   };
 
@@ -185,15 +209,17 @@ export const WebSocketProvider = ({ children }) => {
   }, []);
 
   return (
-    <WebSocketContext.Provider value={{ 
-      onlineSocket, 
-      chatSocket, 
-      connectOnlineSocket,
-      connectChatSocket,
-      disconnectChatSocket,
-      sendTypingStatus,
-    }}>
+    <WebSocketContext.Provider
+      value={{
+        onlineSocket,
+        chatSocket,
+        connectOnlineSocket,
+        connectChatSocket,
+        disconnectChatSocket,
+        sendTypingStatus,
+      }}
+    >
       {children}
     </WebSocketContext.Provider>
   );
-}; 
+};

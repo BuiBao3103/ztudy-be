@@ -1,52 +1,91 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+import axios from "axios";
 
-// Login user
+// Set default base URL for axios
+axios.defaults.baseURL = "http://localhost:8000";
+axios.defaults.withCredentials = true;
+
+const API_BASE_URL = "http://localhost:8000";
+
 export const login = async (email, password) => {
-  const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ email, password }),
+  return await axios.post("/api/v1/auth/login/", {
+    email,
+    password,
   });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Login failed');
-  }
-
-  const data = await response.json();
-  return data;
 };
 
-// Get current user info
 export const getCurrentUser = async () => {
-  const response = await fetch(`${API_BASE_URL}/auth/user/`, {
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to get user info');
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/user/`, {
+      headers: {
+        accept: "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to get current user");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Get current user error:", error);
+    throw error;
   }
-  return response.json();
 };
 
-// Join a room
-export const joinRoom = async (roomCode) => {
-  const response = await fetch(`${API_BASE_URL}/rooms/join/${roomCode}/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({})
+export const logout = async () => {
+  return await axios.post("/api/v1/auth/logout/");
+};
+
+export const register = async (username, email, password1, password2) => {
+  return await axios.post("/api/v1/auth/registration/", {
+    username,
+    email,
+    password1,
+    password2,
   });
+};
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || 'Failed to join room');
+export const joinRoom = async (roomCode) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/v1/rooms/${roomCode}/join/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Để gửi cookies
+    });
+    
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.detail || 'Failed to join room');
+    }
+    data.status = response.status;
+    return data;
+  } catch (error) {
+    throw error;
   }
+};
 
-  return response.json();
-}; 
+export const approveRequest = async (roomCode, requestId) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/v1/rooms/${roomCode}/approve/${requestId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to approve request');
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};

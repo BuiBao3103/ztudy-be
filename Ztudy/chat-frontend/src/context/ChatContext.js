@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState } from "react";
 
 export const ChatContext = createContext({
   messages: [],
@@ -11,6 +11,12 @@ export const ChatContext = createContext({
   setCurrentRoom: () => {},
   typingUsers: new Set(),
   setTypingUsers: () => {},
+  pendingRequests: [],
+  setPendingRequests: () => {},
+  isAdmin: false,
+  setIsAdmin: () => {},
+  isPending: false,
+  setIsPending: () => {},
 });
 
 export const ChatProvider = ({ children }) => {
@@ -19,6 +25,9 @@ export const ChatProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [typingUsers, setTypingUsers] = useState(new Set());
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const value = {
     messages,
@@ -31,11 +40,13 @@ export const ChatProvider = ({ children }) => {
     setCurrentRoom,
     typingUsers,
     setTypingUsers,
+    pendingRequests,
+    setPendingRequests,
+    isAdmin,
+    setIsAdmin,
+    isPending,
+    setIsPending,
   };
 
-  return (
-    <ChatContext.Provider value={value}>
-      {children}
-    </ChatContext.Provider>
-  );
-}; 
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+};

@@ -1,33 +1,69 @@
-import React, { useContext } from 'react';
-import { ChatContext } from '../context/ChatContext';
+import React, { useContext } from "react";
+import { ChatContext } from "../context/ChatContext";
+import { approveRequest } from "../services/api";
 
 const RequestList = () => {
-  const { pendingRequests } = useContext(ChatContext);
+  const { pendingRequests, setPendingRequests, currentRoom } =
+    useContext(ChatContext);
+
+  const handleApprove = async (requestId) => {
+    try {
+      await approveRequest(currentRoom.code, requestId);
+      setPendingRequests((prev) =>
+        prev.filter((request) => request.id !== requestId)
+      );
+    } catch (error) {
+      console.error("Error approving request:", error);
+    }
+  };
 
   return (
-    <div className="w-64 bg-gray-800 border-l border-gray-700">
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white">Join Requests</h2>
+    <div className="h-full bg-[#1a1a1a]">
+      <div className="p-4 border-b border-[#2a2a2a]">
+        <h2 className="text-lg font-semibold text-gray-200">Join Requests</h2>
+        <p className="text-sm text-gray-400 mt-1">
+          {pendingRequests?.length || 0} pending
+        </p>
       </div>
-      <div className="p-4 space-y-2">
-        {pendingRequests.map((request) => (
-          <div key={request.id} className="bg-gray-700 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm font-medium">
-                {request.username}
-              </span>
+
+      <div className="p-2 space-y-2 overflow-y-auto">
+        {!pendingRequests || pendingRequests.length === 0 ? (
+          <div className="text-gray-400 text-center p-4">
+            No pending requests
+          </div>
+        ) : (
+          pendingRequests.map((request) => (
+            <div
+              key={request.id}
+              className="bg-[#222222] rounded-lg p-3 space-y-3"
+            >
+              <div className="flex items-center space-x-3">
+                <img
+                  src={request.avatar}
+                  alt={request.username}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-[#2a2a2a]"
+                />
+                <div className="flex-1">
+                  <p className="text-gray-200 font-medium">
+                    {request.username}
+                  </p>
+                </div>
+              </div>
+
               <button
-                onClick={() => {/* Handle approve */}}
-                className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-colors duration-200"
+                onClick={() => handleApprove(request.id)}
+                className="w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg 
+                hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
+                transition-colors duration-200"
               >
                 Approve
               </button>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 };
 
-export default RequestList; 
+export default RequestList;

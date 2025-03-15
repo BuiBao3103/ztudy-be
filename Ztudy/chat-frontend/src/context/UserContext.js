@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { getCurrentUser } from '../api';
+import { getCurrentUser } from '../services/api';
 
 export const UserContext = createContext({
   currentUser: null,

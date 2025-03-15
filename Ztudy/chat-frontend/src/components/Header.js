@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../api';
+import { logout } from '../services/api';
 
 const Header = () => {
   const { currentUser, setCurrentUser } = useContext(UserContext);

@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { register } from '../api';
+import { register } from '../services/api';
 
 const Register = () => {
   const [formData, setFormData] = useState({
