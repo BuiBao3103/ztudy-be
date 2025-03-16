@@ -220,8 +220,16 @@ class LeaveRoomAPIView(APIView):
 
 
 class ApproveJoinRequestAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, code_invite, user_id):
         room = get_object_or_404(Room, code_invite=code_invite)
+
+        user_request = request.user
+        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        if participant_user is None or not participant_user.is_admin:
+            return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
+
         participant = get_object_or_404(
             RoomParticipant, room=room, user_id=user_id)
 
@@ -273,3 +281,65 @@ class ApproveJoinRequestAPIView(APIView):
             )
 
         return Response({'message': 'User has been approved successfully!'}, status=status.HTTP_200_OK)
+
+
+class RejectJoinRequestAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, code_invite, user_id):
+        room = get_object_or_404(Room, code_invite=code_invite)
+
+        user_request = request.user
+        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        if participant_user is None or not participant_user.is_admin:
+            return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
+
+        participant = get_object_or_404(
+            RoomParticipant, room=room, user_id=user_id)
+
+        if participant.is_approved:
+            return Response({'detail': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        participant.delete()
+
+        channel_layer = get_channel_layer()
+
+        # Send notification to the rejected user
+        user_data = UserSerializer(participant.user).data
+        # Send to user-specific group
+        async_to_sync(channel_layer.group_send)(
+            f'user_{participant.user.id}',
+            {
+                'type': 'user_rejected',
+                'user': user_data,
+                'room_id': room.id,
+                'code_invite': code_invite
+            }
+        )
+
+        # Update pending requests list
+        pending_requests = list(
+            RoomParticipant.objects.filter(room=room, is_approved=False)
+            .select_related('user')
+        )
+        request_list = [UserSerializer(
+            req.user).data for req in pending_requests]
+
+        # Get all admin participants
+        admin_participants = list(
+            RoomParticipant.objects.filter(
+                room=room, is_admin=True).select_related('user')
+        )
+
+        # Send the pending requests only to admin users
+        for admin in admin_participants:
+            admin_user_group = f'user_{admin.user.id}'
+            async_to_sync(channel_layer.group_send)(
+                admin_user_group,
+                {
+                    'type': 'update_pending_requests',
+                    'requests': request_list
+                }
+            )
+
+        return Response({'message': 'User has been rejected successfully!'}, status=status.HTTP_200_OK)
