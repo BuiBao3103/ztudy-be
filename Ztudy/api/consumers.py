@@ -94,6 +94,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Update user list in room
             await self.broadcast_user_list()
 
+    async def user_rejected(self, event):
+        user = event['user']
+        room_id = event['room_id']
+        code_invite = event['code_invite']
+
+        if user['id'] == self.user.id and self.is_in_waiting_state:
+            self.is_in_waiting_state = False
+
+            # Notify user about rejection
+            await self.send(text_data=json.dumps({
+                'type': 'user_rejected',
+                'user': user,
+                'room_id': room_id,
+                'code_invite': code_invite
+            }))
+
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)

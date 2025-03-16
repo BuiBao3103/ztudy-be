@@ -10,6 +10,7 @@ from .sound_views import SoundList, SoundUpload, SoundDetail
 from .room_views import (RoomListCreate, RoomRetrieveUpdateDestroy, UploadThumbnailView,
                          RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy,
                          RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy,
-                         SuggestedRoomsAPIView, JoinRoomAPIView, LeaveRoomAPIView, ApproveJoinRequestAPIView)
+                         SuggestedRoomsAPIView, JoinRoomAPIView, LeaveRoomAPIView,
+                         ApproveJoinRequestAPIView, RejectJoinRequestAPIView, )
 from .stats_views import StudyTimeStatsView, StudyTimeChartView, LeaderboardView
 from .views import chat_room

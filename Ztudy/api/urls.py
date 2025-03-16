@@ -79,7 +79,9 @@ urlpatterns = [
     path('api/v1/rooms/<str:code_invite>/leave/',
          views.LeaveRoomAPIView.as_view(), name='leave-room'),
     path('api/v1/rooms/<str:code_invite>/approve/<int:user_id>/',
-         views.ApproveJoinRequestAPIView.as_view()),
+         views.ApproveJoinRequestAPIView.as_view(), name='approve-join-request'),
+    path('api/v1/rooms/<str:code_invite>/reject/<int:user_id>/',
+         views.RejectJoinRequestAPIView.as_view(), name='reject-join-request'),
 
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(),
@@ -101,9 +103,6 @@ urlpatterns = [
     path('api/v1/stats/leaderboard/<str:period>/',
          views.LeaderboardView.as_view(), name='leader-board'),
 
-
-
-
     # Auth URLs
     path('api/v1/auth/', include('dj_rest_auth.urls')),
     re_path(r"^api/v1/auth/accounts/", include("allauth.urls")),
@@ -122,7 +121,7 @@ urlpatterns = [
 
     # Swagger URL
     path('api/v1/swagger/', schema_view.with_ui('swagger',
-         cache_timeout=0), name='swagger-ui'),
+                                                cache_timeout=0), name='swagger-ui'),
 
     # Chat Room URL
     path('together/', views.chat_room, name='chat-room'),
