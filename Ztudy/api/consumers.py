@@ -57,7 +57,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        await self.broadcast_user_list()
+        await self.broadcast_participant_list()
 
         # If this is an admin, send them the pending requests list
         if participant.is_admin:
@@ -92,7 +92,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             # Update user list in room
-            await self.broadcast_user_list()
+            await self.broadcast_participant_list()
 
     async def user_rejected(self, event):
         user = event['user']
@@ -142,7 +142,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-            await self.broadcast_user_list()
+            await self.broadcast_participant_list()
 
     async def receive(self, text_data):
         try:
@@ -204,49 +204,57 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'user': event['user']
         }))
 
-    async def broadcast_user_list(self):
+    async def broadcast_participant_list(self):
         participants = await sync_to_async(list)(
             RoomParticipant.objects.filter(room=self.room, is_out=False).select_related('user')
         )
 
-        user_data_list = []
+        participant_data_list = []
         for participant in participants:
             user_data = UserSerializer(participant.user).data
-            user_data_list.append(user_data)
+            participant_data = {
+                'user': user_data,
+                'is_admin': participant.is_admin,
+                'is_approved': participant.is_approved,
+                'is_out': participant.is_out
+            }
+            participant_data_list.append(participant_data)
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'update_user_list',
-                'users': user_data_list
+                'type': 'update_participant_list',
+                'participants': participant_data_list
             }
         )
 
-    async def update_user_list(self, event):
+    async def update_participant_list(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'user_list',
-            'users': event['users']
+            'type': 'participant_list',
+            'participants': event['participants']
         }))
 
     async def broadcast_pending_requests(self):
         try:
-            # Get all pending requests for this room
             pending_requests = await sync_to_async(list)(
                 RoomParticipant.objects.filter(room=self.room, is_approved=False).select_related('user')
             )
 
-            # Serialize the user data for each pending request
             request_list = []
             for participant in pending_requests:
                 user_data = UserSerializer(participant.user).data
-                request_list.append(user_data)
+                participant_data = {
+                    'user': user_data,
+                    'is_admin': participant.is_admin,
+                    'is_approved': participant.is_approved,
+                    'is_out': participant.is_out
+                }
+                request_list.append(participant_data)
 
-            # Get all admin participants
             admin_participants = await sync_to_async(list)(
                 RoomParticipant.objects.filter(room=self.room, is_admin=True).select_related('user')
             )
 
-            # Send the pending requests only to admin users
             for admin in admin_participants:
                 admin_user_group = f'user_{admin.user.id}'
                 await self.channel_layer.group_send(

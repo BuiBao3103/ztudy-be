@@ -124,27 +124,28 @@ class JoinRoomAPIView(APIView):
         participant, created = RoomParticipant.objects.get_or_create(
             room=room, user=user)
 
-        # Check if private room and not approved
         if room.type == "PRIVATE" and not participant.is_approved:
             participant.is_out = True
             participant.save()
             participant_data = RoomParticipantSerializer(participant).data
 
-            # Get all pending requests
+            # Get all pending requests with participant data
             pending_requests = list(
                 RoomParticipant.objects.filter(room=room, is_approved=False)
                 .select_related('user')
             )
-            request_list = [UserSerializer(
-                req.user).data for req in pending_requests]
+            request_list = [{
+                'user': UserSerializer(req.user).data,
+                'is_admin': req.is_admin,
+                'is_approved': req.is_approved,
+                'is_out': req.is_out
+            } for req in pending_requests]
 
             # Get all admin participants
             admin_participants = list(
-                RoomParticipant.objects.filter(
-                    room=room, is_admin=True).select_related('user')
+                RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
             )
 
-            # Send the pending requests only to admin users
             channel_layer = get_channel_layer()
             for admin in admin_participants:
                 admin_user_group = f'user_{admin.user.id}'
@@ -237,14 +238,13 @@ class ApproveJoinRequestAPIView(APIView):
             return Response({'detail': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
 
         participant.is_approved = True
-        participant.is_out = False  # Set is_out to False so user is active in the room
+        participant.is_out = False
         participant.save()
 
         channel_layer = get_channel_layer()
 
         # Send notification to the approved user
         user_data = UserSerializer(participant.user).data
-        # Send to user-specific group
         async_to_sync(channel_layer.group_send)(
             f'user_{participant.user.id}',
             {
@@ -255,21 +255,23 @@ class ApproveJoinRequestAPIView(APIView):
             }
         )
 
-        # Update pending requests list
+        # Update pending requests list with participant data
         pending_requests = list(
             RoomParticipant.objects.filter(room=room, is_approved=False)
             .select_related('user')
         )
-        request_list = [UserSerializer(
-            req.user).data for req in pending_requests]
+        request_list = [{
+            'user': UserSerializer(req.user).data,
+            'is_admin': req.is_admin,
+            'is_approved': req.is_approved,
+            'is_out': req.is_out
+        } for req in pending_requests]
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(
-                room=room, is_admin=True).select_related('user')
+            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
         )
 
-        # Send the pending requests only to admin users
         for admin in admin_participants:
             admin_user_group = f'user_{admin.user.id}'
             async_to_sync(channel_layer.group_send)(
@@ -300,15 +302,15 @@ class RejectJoinRequestAPIView(APIView):
         if participant.is_approved:
             return Response({'detail': 'User has already been approved!'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Store user data before deleting participant
+        user_data = UserSerializer(participant.user).data
         participant.delete()
 
         channel_layer = get_channel_layer()
 
         # Send notification to the rejected user
-        user_data = UserSerializer(participant.user).data
-        # Send to user-specific group
         async_to_sync(channel_layer.group_send)(
-            f'user_{participant.user.id}',
+            f'user_{user_id}',
             {
                 'type': 'user_rejected',
                 'user': user_data,
@@ -317,21 +319,23 @@ class RejectJoinRequestAPIView(APIView):
             }
         )
 
-        # Update pending requests list
+        # Update pending requests list with participant data
         pending_requests = list(
             RoomParticipant.objects.filter(room=room, is_approved=False)
             .select_related('user')
         )
-        request_list = [UserSerializer(
-            req.user).data for req in pending_requests]
+        request_list = [{
+            'user': UserSerializer(req.user).data,
+            'is_admin': req.is_admin,
+            'is_approved': req.is_approved,
+            'is_out': req.is_out
+        } for req in pending_requests]
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(
-                room=room, is_admin=True).select_related('user')
+            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
         )
 
-        # Send the pending requests only to admin users
         for admin in admin_participants:
             admin_user_group = f'user_{admin.user.id}'
             async_to_sync(channel_layer.group_send)(
