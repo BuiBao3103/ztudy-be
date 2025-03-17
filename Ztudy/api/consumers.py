@@ -110,6 +110,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'code_invite': code_invite
             }))
 
+    async def user_assigned_admin(self, event):
+        user = event['user']
+        room_id = event['room_id']
+        code_invite = event['code_invite']
+
+        if user['id'] == self.user.id:
+            # Notify user about admin assignment
+            await self.send(text_data=json.dumps({
+                'type': 'user_assigned_admin',
+                'user': user,
+                'room_id': room_id,
+                'code_invite': code_invite
+            }))
+
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)

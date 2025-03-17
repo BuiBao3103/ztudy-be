@@ -344,6 +344,7 @@ class RejectJoinRequestAPIView(APIView):
 
         return Response({'message': 'User has been rejected successfully!'}, status=status.HTTP_200_OK)
 
+
 class AssignRoomAdminAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -360,5 +361,19 @@ class AssignRoomAdminAPIView(APIView):
 
         participant.is_admin = True
         participant.save()
+
+        channel_layer = get_channel_layer()
+
+        user_data = UserSerializer(participant.user).data
+        # Send to user-specific group
+        async_to_sync(channel_layer.group_send)(
+            f'user_{participant.user.id}',
+            {
+                'type': 'user_assigned_admin',
+                'user': user_data,
+                'room_id': room.id,
+                'code_invite': code_invite
+            }
+        )
 
         return Response({'message': 'User has been assigned as admin successfully!'}, status=status.HTTP_200_OK)
