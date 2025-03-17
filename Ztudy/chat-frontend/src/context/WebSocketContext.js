@@ -35,6 +35,7 @@ export const WebSocketProvider = ({children}) => {
         setTypingUsers,
         setIsPending,
         setPendingRequests,
+        setIsAdmin,
     } = useContext(ChatContext);
 
     const connectChatSocket = (roomCode) => {
@@ -143,6 +144,10 @@ export const WebSocketProvider = ({children}) => {
 
                 case "participant_list":
                     setParticipants(data.participants);
+                    break;
+                
+                case "user_assigned_admin":
+                    setIsAdmin(true);
                     break;
 
                 default:

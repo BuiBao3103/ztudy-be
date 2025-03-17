@@ -1,10 +1,20 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { ChatContext } from '../context/ChatContext';
 import { UserContext } from '../context/UserContext';
+import { assignAdmin } from '../services/api';
 
 const UserList = () => {
-  const { participants } = useContext(ChatContext);
+  const { participants, currentRoom, isAdmin } = useContext(ChatContext);
   const { currentUser } = useContext(UserContext);
+  const [hoveredUser, setHoveredUser] = useState(null);
+
+  const handleAssignAdmin = async (userId) => {
+    try {
+      await assignAdmin(currentRoom.code, userId);
+    } catch (error) {
+      console.error("Error assigning admin:", error);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#1a1a1a]">
@@ -22,7 +32,9 @@ const UserList = () => {
               key={participant.user.id}
               className={`flex items-center space-x-3 p-2 rounded-lg mb-1 
                 ${participant.user.id === currentUser?.id ? 'bg-[#2a2a2a]' : 'hover:bg-[#222222]'}
-                transition-colors duration-200`}
+                transition-colors duration-200 relative group`}
+              onMouseEnter={() => setHoveredUser(participant.user.id)}
+              onMouseLeave={() => setHoveredUser(null)}
             >
               <div className="relative">
                 <img
@@ -54,6 +66,20 @@ const UserList = () => {
                   </p>
                 )}
               </div>
+
+              {/* Assign Admin Button */}
+              {isAdmin && 
+               !participant.is_admin && 
+               hoveredUser === participant.user.id && 
+               participant.user.id !== currentUser?.id && (
+                <button
+                  onClick={() => handleAssignAdmin(participant.user.id)}
+                  className="absolute right-2 px-2 py-1 text-xs bg-green-600 text-white rounded
+                    hover:bg-green-700 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                >
+                  Make Admin
+                </button>
+              )}
             </div>
           );
         })}

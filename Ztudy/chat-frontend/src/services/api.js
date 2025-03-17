@@ -43,4 +43,9 @@ export const rejectRequest = async (roomCode, requestId) => {
     return response.data;
 }
 
+export const assignAdmin = async (roomCode, userId) => {
+    const response = await api.post(`/api/v1/rooms/${roomCode}/assign-admin/${userId}/`);
+    return response.data;
+};
+
 // Thêm các API khác nếu cần
