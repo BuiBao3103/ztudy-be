@@ -5,7 +5,6 @@ from . import views
 from .admin import admin
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-from rest_framework_simplejwt.views import TokenRefreshView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -125,7 +124,4 @@ urlpatterns = [
 
     # Chat Room URL
     path('together/', views.chat_room, name='chat-room'),
-
-    path('api/v1/auth/token/refresh/',
-         TokenRefreshView.as_view(), name='token_refresh'),
 ]

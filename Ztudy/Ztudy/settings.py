@@ -162,6 +162,7 @@ REST_AUTH = {
     "JWT_AUTH_REFRESH_COOKIE": "refresh_token",
     "JWT_AUTH_HTTPONLY": True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
+    'OLD_PASSWORD_FIELD_ENABLED': True,
 }
 
 # Password validation
