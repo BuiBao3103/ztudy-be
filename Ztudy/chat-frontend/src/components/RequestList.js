@@ -3,8 +3,7 @@ import {ChatContext} from "../context/ChatContext";
 import {approveRequest, rejectRequest} from "../services/api";
 
 const RequestList = () => {
-    const {pendingRequests, setPendingRequests, currentRoom} =
-        useContext(ChatContext);
+    const {pendingRequests, currentRoom} = useContext(ChatContext);
 
     const handleApprove = async (requestId) => {
         try {
@@ -15,7 +14,6 @@ const RequestList = () => {
     };
 
     const handleReject = async (requestId) => {
-        console.log(requestId)
         try {
             await rejectRequest(currentRoom.code, requestId);
         } catch (error) {
@@ -40,25 +38,25 @@ const RequestList = () => {
                 ) : (
                     pendingRequests.map((request) => (
                         <div
-                            key={request.id}
+                            key={request.user.id}
                             className="bg-[#222222] rounded-lg p-3 space-y-3"
                         >
                             <div className="flex items-center space-x-3">
                                 <img
-                                    src={request.avatar}
-                                    alt={request.username}
+                                    src={request.user.avatar}
+                                    alt={request.user.username}
                                     className="w-10 h-10 rounded-full object-cover border-2 border-[#2a2a2a]"
                                 />
                                 <div className="flex-1">
                                     <p className="text-gray-200 font-medium">
-                                        {request.username}
+                                        {request.user.username}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleApprove(request.id)}
+                                    onClick={() => handleApprove(request.user.id)}
                                     className="w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg
                                         hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
                                         transition-colors duration-200"
@@ -66,7 +64,7 @@ const RequestList = () => {
                                     Approve
                                 </button>
                                 <button
-                                    onClick={() => handleReject(request.id)}
+                                    onClick={() => handleReject(request.user.id)}
                                     className="w-full px-4 py-2 bg-red-600 text-white text-sm rounded-lg
                                         hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500
                                         transition-colors duration-200"

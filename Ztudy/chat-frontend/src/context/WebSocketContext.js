@@ -140,6 +140,11 @@ export const WebSocketProvider = ({children}) => {
                     ws.close()
                     alert("You have been rejected from the room.");
                     break;
+
+                case "participant_list":
+                    setParticipants(data.participants);
+                    break;
+
                 default:
                     console.log("Unhandled message type:", data.type);
             }
