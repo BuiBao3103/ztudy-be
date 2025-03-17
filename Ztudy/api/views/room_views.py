@@ -343,3 +343,22 @@ class RejectJoinRequestAPIView(APIView):
             )
 
         return Response({'message': 'User has been rejected successfully!'}, status=status.HTTP_200_OK)
+
+class AssignRoomAdminAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, code_invite, user_id):
+        room = get_object_or_404(Room, code_invite=code_invite)
+
+        user_request = request.user
+        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        if participant_user is None or not participant_user.is_admin:
+            return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
+
+        participant = get_object_or_404(
+            RoomParticipant, room=room, user_id=user_id)
+
+        participant.is_admin = True
+        participant.save()
+
+        return Response({'message': 'User has been assigned as admin successfully!'}, status=status.HTTP_200_OK)

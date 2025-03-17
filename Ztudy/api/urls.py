@@ -81,6 +81,8 @@ urlpatterns = [
          views.ApproveJoinRequestAPIView.as_view(), name='approve-join-request'),
     path('api/v1/rooms/<str:code_invite>/reject/<int:user_id>/',
          views.RejectJoinRequestAPIView.as_view(), name='reject-join-request'),
+    path('api/v1/rooms/<str:code_invite>/assign-admin/<int:user_id>/',
+         views.AssignRoomAdminAPIView.as_view(), name='assign-room-admin'),
 
     # Room Category URLs
     path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(),
