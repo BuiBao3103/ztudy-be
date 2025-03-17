@@ -1,3 +1,5 @@
+from dj_rest_auth.serializers import PasswordResetSerializer
+from django.conf import settings
 from allauth.account.models import EmailAddress
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from pandas.core.dtypes.inference import is_re
@@ -8,7 +10,17 @@ from .models import (BackgroundVideoType, BackgroundVideo,
                      Room, RoomParticipant, Interest, StudySession)
 from django.core.exceptions import ValidationError
 from .utils import generate_unique_code, encode_emoji, decode_emoji
-from dj_rest_auth.serializers import UserDetailsSerializer
+from dj_rest_auth.serializers import UserDetailsSerializer, PasswordResetConfirmSerializer
+from django.contrib.auth.forms import PasswordResetForm
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+
+
+User = get_user_model()
 
 
 class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
@@ -229,3 +241,78 @@ class LeaderboardUserSerializer(serializers.ModelSerializer):
         model = User  # Assuming User is your user model
         # Add other fields you want to include
         fields = ['id', 'username', 'rank', 'total_time', 'avatar']
+
+
+class CustomPasswordResetForm(PasswordResetForm):
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email, to_email, html_email_template_name=None):
+        user = context.get('user')
+        if user:
+            context['uid'] = urlsafe_base64_encode(force_bytes(user.pk))
+
+        context['frontend_url'] = settings.FRONTEND_URL
+        context['site_name'] = 'Ztudy'
+        super().send_mail(
+            subject_template_name,
+            email_template_name,
+            context,
+            from_email,
+            to_email,
+            html_email_template_name
+        )
+
+
+class CustomPasswordResetSerializer(PasswordResetSerializer):
+    password_reset_form_class = CustomPasswordResetForm
+
+    def get_email_options(self):
+        return {
+            'subject_template_name': 'registration/custom_password_reset_subject.txt',
+            'email_template_name': 'registration/custom_password_reset_email.html',
+            'html_email_template_name': 'registration/custom_password_reset_email.html',
+            'extra_email_context': {
+                'frontend_url': settings.FRONTEND_URL,
+                'site_name': 'Ztudy',
+            }
+        }
+
+    def save(self):
+        opts = self.get_email_options()
+
+        form = self.password_reset_form_class(data=self.validated_data)
+
+        if form.is_valid():
+            opts['request'] = self.context.get('request')
+            form.save(**opts)
+
+
+class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
+    def validate(self, attrs):
+        try:
+            # Decode the uid and validate user
+            uid = force_str(urlsafe_base64_decode(attrs['uid']))
+            self.user = User.objects.get(pk=uid)
+
+            # Validate token
+            if not default_token_generator.check_token(self.user, attrs['token']):
+                raise ValidationError({'token': ['Invalid or expired token']})
+
+            # Validate passwords
+            if attrs['new_password1'] != attrs['new_password2']:
+                raise ValidationError(
+                    {'new_password2': ["The two password fields didn't match."]})
+
+            return attrs
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise ValidationError({'uid': ['Invalid value']})
+
+    def save(self):
+        if not self.user:
+            raise ValidationError(
+                {'error': 'No user found for password reset'})
+
+        # Set the new password
+        self.user.set_password(self.validated_data['new_password1'])
+        self.user.save()
+
+        return self.user

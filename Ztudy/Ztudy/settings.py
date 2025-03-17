@@ -163,6 +163,8 @@ REST_AUTH = {
     "JWT_AUTH_HTTPONLY": True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
+    'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
+    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'api.serializers.CustomPasswordResetConfirmSerializer',
 }
 
 # Password validation
@@ -313,3 +315,4 @@ LOGGING = {
         },
     },
 }
+FRONTEND_URL = 'http://localhost:3000'
