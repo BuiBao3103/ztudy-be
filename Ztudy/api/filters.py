@@ -1,5 +1,5 @@
 import django_filters
-from .models import SessionGoal
+from .models import SessionGoal, SessionGoalsStatus
 
 class SessionGoalFilter(django_filters.FilterSet):
     user = django_filters.NumberFilter(field_name="user", lookup_expr="exact")  # user = value
@@ -7,6 +7,7 @@ class SessionGoalFilter(django_filters.FilterSet):
     # user_gte = django_filters.NumberFilter(field_name="user", lookup_expr="gte")  # user >= value
     # user_lt = django_filters.NumberFilter(field_name="user", lookup_expr="lt")  # user < value
     # user_lte = django_filters.NumberFilter(field_name="user", lookup_expr="lte")  # user <= value
+    status = django_filters.ChoiceFilter(choices=SessionGoalsStatus.choices, field_name="status", lookup_expr="exact")
 
     class Meta:
         model = SessionGoal
