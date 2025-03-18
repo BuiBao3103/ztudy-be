@@ -269,7 +269,7 @@ class CustomPasswordResetSerializer(PasswordResetSerializer):
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
-            raise ValidationError("Email không tồn tại trong hệ thống")
+            raise ValidationError("User with this email does not exist")
 
         cache_key = f"password_reset_{value}"
         last_attempt = cache.get(cache_key)
