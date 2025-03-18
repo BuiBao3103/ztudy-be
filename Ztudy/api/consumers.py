@@ -124,7 +124,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
 
             # Update user list in room
-            await self.broadcast_participant_list()
+            await self.broadcast_pending_requests()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):
