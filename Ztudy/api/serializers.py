@@ -1,24 +1,26 @@
-from dj_rest_auth.serializers import PasswordResetSerializer
-from django.conf import settings
+from datetime import datetime, timedelta
+
 from allauth.account.models import EmailAddress
 from dj_rest_auth.registration.serializers import RegisterSerializer
-from pandas.core.dtypes.inference import is_re
+from dj_rest_auth.serializers import PasswordResetSerializer
+from dj_rest_auth.serializers import UserDetailsSerializer, PasswordResetConfirmSerializer
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.utils.encoding import force_bytes
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
+
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
                      Room, RoomParticipant, Interest, StudySession)
-from django.core.exceptions import ValidationError
 from .utils import generate_unique_code, encode_emoji, decode_emoji
-from dj_rest_auth.serializers import UserDetailsSerializer, PasswordResetConfirmSerializer
-from django.contrib.auth.forms import PasswordResetForm
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-
 
 User = get_user_model()
 
@@ -267,7 +269,27 @@ class CustomPasswordResetSerializer(PasswordResetSerializer):
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
-            raise ValidationError("User with this email does not exist")
+            raise ValidationError("Email không tồn tại trong hệ thống")
+
+        cache_key = f"password_reset_{value}"
+        last_attempt = cache.get(cache_key)
+
+        if last_attempt:
+            time_diff = datetime.now() - last_attempt
+            if time_diff < timedelta(minutes=3):
+                remaining_seconds = int((timedelta(minutes=3) - time_diff).total_seconds())
+                remaining_minutes = remaining_seconds // 60
+                remaining_secs = remaining_seconds % 60
+
+                if remaining_minutes > 0:
+                    message = f"Please wait {remaining_minutes} minute(s) and {remaining_secs} second(s)"
+                else:
+                    message = f"Please wait {remaining_seconds} second(s)"
+
+                raise ValidationError(message)
+
+        cache.set(cache_key, datetime.now(), timeout=180)
+
         return value
 
     def get_email_options(self):
