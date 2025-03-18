@@ -265,6 +265,11 @@ class CustomPasswordResetForm(PasswordResetForm):
 class CustomPasswordResetSerializer(PasswordResetSerializer):
     password_reset_form_class = CustomPasswordResetForm
 
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise ValidationError("User with this email does not exist")
+        return value
+
     def get_email_options(self):
         return {
             'subject_template_name': 'registration/custom_password_reset_subject.txt',
@@ -278,7 +283,6 @@ class CustomPasswordResetSerializer(PasswordResetSerializer):
 
     def save(self):
         opts = self.get_email_options()
-
         form = self.password_reset_form_class(data=self.validated_data)
 
         if form.is_valid():
