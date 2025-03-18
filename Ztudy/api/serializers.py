@@ -16,6 +16,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
+from django.urls import reverse
 
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
@@ -99,9 +100,20 @@ class MotivationalQuoteSerializer(serializers.ModelSerializer):
 
 
 class SoundSerializer(serializers.ModelSerializer):
+    stream_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Sound
         fields = '__all__'
+
+    def get_stream_url(self, obj):
+        request = self.context.get('request')
+        if request is None:
+            return None
+        
+        return request.build_absolute_uri(
+            reverse('stream-audio', kwargs={'pk': obj.id})
+        )
 
     def create(self, validated_data):
         if 'name' in validated_data:

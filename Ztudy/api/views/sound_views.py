@@ -13,6 +13,10 @@ class SoundList(generics.ListAPIView):
     queryset = Sound.objects.all()
     serializer_class = SoundSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        return context  # Đã bao gồm request trong context
+
 
 class SoundDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Sound.objects.all()
