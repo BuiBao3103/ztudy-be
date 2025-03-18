@@ -6,7 +6,7 @@ from .background_video_views import (BackgroundVideoListCreate, BackgroundVideoR
                                      UploadBackgroundVideoView,
                                      BackgroundVideoTypeListCreate, BackgroundVideoTypeRetrieveUpdateDestroy)
 from .session_goal_views import SessionGoalListCreate, SessionGoalRetrieveUpdateDestroy
-from .sound_views import SoundList, SoundUpload, SoundDetail
+from .sound_views import SoundList, SoundUpload, SoundDetail, StreamAudioView
 from .room_views import (RoomListCreate, RoomRetrieveUpdateDestroy, UploadThumbnailView,
                          RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy,
                          RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy,

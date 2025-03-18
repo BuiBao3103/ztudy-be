@@ -64,6 +64,7 @@ urlpatterns = [
     path('api/v1/sounds/<int:pk>/',
          views.SoundDetail.as_view(), name='sound-view-detail'),
     path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
+    path('api/v1/sounds/<int:pk>/stream/', views.StreamAudioView.as_view(), name='stream-audio'),
 
     # Room URLs
     path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
