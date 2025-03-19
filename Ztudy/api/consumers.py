@@ -1,10 +1,12 @@
-from .models import Room, RoomParticipant, User, StudySession
 import asyncio
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from django.utils.timezone import now
-from django.db.models import F
+
 from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.db.models import F
+from django.utils.timezone import now
+
+from .models import Room, RoomParticipant, User, StudySession
 from .serializers import UserSerializer
 
 
@@ -125,6 +127,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             # Update user list in room
             await self.broadcast_pending_requests()
+            await self.broadcast_participant_list()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_group_name'):

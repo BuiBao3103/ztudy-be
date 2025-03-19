@@ -149,6 +149,7 @@ export const WebSocketProvider = ({children}) => {
                 case "user_assigned_admin":
                     setIsAdmin(true);
                     break;
+                    
 
                 default:
                     console.log("Unhandled message type:", data.type);

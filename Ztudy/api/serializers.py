@@ -2,21 +2,20 @@ from datetime import datetime, timedelta
 
 from allauth.account.models import EmailAddress
 from dj_rest_auth.registration.serializers import RegisterSerializer
-from dj_rest_auth.serializers import PasswordResetSerializer
-from dj_rest_auth.serializers import UserDetailsSerializer, PasswordResetConfirmSerializer
+from dj_rest_auth.serializers import UserDetailsSerializer, PasswordResetConfirmSerializer, PasswordResetSerializer
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
-from django.urls import reverse
 
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
@@ -110,7 +109,7 @@ class SoundSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request is None:
             return None
-        
+
         return request.build_absolute_uri(
             reverse('stream-audio', kwargs={'pk': obj.id})
         )
@@ -238,6 +237,16 @@ class StudySessionSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class LeaderboardUserSerializer(serializers.ModelSerializer):
+    total_time = serializers.FloatField()
+    rank = serializers.IntegerField()
+
+    class Meta:
+        model = User  # Assuming User is your user model
+        # Add other fields you want to include
+        fields = ['id', 'username', 'rank', 'total_time', 'avatar']
+
+
 class CustomUserDetailsSerializer(UserDetailsSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
 
@@ -247,14 +256,12 @@ class CustomUserDetailsSerializer(UserDetailsSerializer):
                    'user_permissions']
 
 
-class LeaderboardUserSerializer(serializers.ModelSerializer):
-    total_time = serializers.FloatField()
-    rank = serializers.IntegerField()
-
-    class Meta:
-        model = User  # Assuming User is your user model
-        # Add other fields you want to include
-        fields = ['id', 'username', 'rank', 'total_time', 'avatar']
+class CustomRegisterSerializer(RegisterSerializer):
+    def save(self, validated_data):
+        user = super().save(validated_data)
+        user.avatar = "https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg"
+        user.save()
+        return user
 
 
 class CustomPasswordResetForm(PasswordResetForm):

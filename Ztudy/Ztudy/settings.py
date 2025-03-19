@@ -10,14 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-from pathlib import Path
 import os
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-from django.conf.global_settings import AUTH_USER_MODEL, DEFAULT_FROM_EMAIL
-from dotenv import load_dotenv
 from datetime import timedelta
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 env_path = Path(__file__).resolve().parent.parent / '.env'
 
@@ -165,6 +162,7 @@ REST_AUTH = {
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
     'PASSWORD_RESET_CONFIRM_SERIALIZER': 'api.serializers.CustomPasswordResetConfirmSerializer',
+    'REGISTER_SERIALIZER': 'api.serializers.CustomRegisterSerializer',
 }
 
 # Password validation
