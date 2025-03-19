@@ -48,4 +48,9 @@ export const assignAdmin = async (roomCode, userId) => {
     return response.data;
 };
 
+export const revokeAdmin = async (roomCode, userId) => {
+    const response = await api.post(`/api/v1/rooms/${roomCode}/revoke-admin/${userId}/`);
+    return response.data;
+};
+
 // Thêm các API khác nếu cần
