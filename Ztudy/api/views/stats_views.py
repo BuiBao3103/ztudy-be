@@ -133,10 +133,12 @@ class LeaderboardView(generics.ListAPIView):
         if is_updating:
             logger.info(f"Leaderboard {period} is being updated")
             return Response({
-                'page': 1,
-                'totalPages': 1,
-                'totalItems': 0,
-                'results': [],
+                'leaderboard': {
+                    'page': 1,
+                    'totalPages': 1,
+                    'totalItems': 0,
+                    'results': []
+                },
                 'message': "Leaderboard is being updated, please try again in a few seconds",
                 'next_update_timestamp': next_update_timestamp,
                 'seconds_until_next_update': 0
@@ -146,10 +148,12 @@ class LeaderboardView(generics.ListAPIView):
         if not zset_exists:
             logger.warning(f"Leaderboard {period} ZSET does not exist")
             return Response({
-                'page': 1,
-                'totalPages': 1,
-                'totalItems': 0,
-                'results': [],
+                'leaderboard': {
+                    'page': 1,
+                    'totalPages': 1,
+                    'totalItems': 0,
+                    'results': []
+                },
                 'message': "Leaderboard is being prepared or not ready, please try again shortly",
                 'next_update_timestamp': next_update_timestamp,
                 'seconds_until_next_update': int(time_until_next_update)
@@ -173,10 +177,12 @@ class LeaderboardView(generics.ListAPIView):
             zset_key, start_idx, end_idx, withscores=True)
         if not leaderboard_tuples:
             return Response({
-                'page': page_number,
-                'totalPages': 1,
-                'totalItems': total_users,
-                'results': [],
+                'leaderboard': {
+                    'page': page_number,
+                    'totalPages': 1,
+                    'totalItems': total_users,
+                    'results': []
+                },
                 'next_update_timestamp': next_update_timestamp,
                 'seconds_until_next_update': int(time_until_next_update)
             })
@@ -207,11 +213,14 @@ class LeaderboardView(generics.ListAPIView):
 
         user_data_list.sort(key=lambda x: x['rank'])
 
+        # Response cuối cùng
         response_data = {
-            'page': page_number,
-            'totalPages': (total_users + page_size - 1) // page_size,
-            'totalItems': total_users,
-            'results': user_data_list,
+            'leaderboard': {
+                'page': page_number,
+                'totalPages': (total_users + page_size - 1) // page_size,
+                'totalItems': total_users,
+                'results': user_data_list
+            },
             'next_update_timestamp': next_update_timestamp,
             'seconds_until_next_update': int(time_until_next_update)
         }
