@@ -29,6 +29,7 @@ class StudyTimeStatsView(APIView):
         week_start = today - timedelta(days=today.weekday())
         month_start = today.replace(day=1)
 
+        # Lấy study time
         daily_study = StudySession.objects.filter(user=user, date=today).aggregate(
             total=Sum('total_time')
         )['total'] or 0
@@ -41,14 +42,40 @@ class StudyTimeStatsView(APIView):
             total=Sum('total_time')
         )['total'] or 0
 
-        all_time = StudySession.objects.filter(user=user).aggregate(
-            total=Sum('total_time'))['total'] or 0
+        # Lấy rank từ Redis
+        today_rank = "unranked"
+        week_rank = "unranked"
+        month_rank = "unranked"
+
+        # Kiểm tra rank today
+        if redis_client.exists('leaderboard:today:zset'):
+            today_rank_pos = redis_client.zrevrank('leaderboard:today:zset', user.id)
+            if today_rank_pos is not None:
+                today_rank = today_rank_pos + 1
+
+        # Kiểm tra rank week
+        if redis_client.exists('leaderboard:week:zset'):
+            week_rank_pos = redis_client.zrevrank('leaderboard:week:zset', user.id)
+            if week_rank_pos is not None:
+                week_rank = week_rank_pos + 1
+
+        # Kiểm tra rank month
+        if redis_client.exists('leaderboard:month:zset'):
+            month_rank_pos = redis_client.zrevrank('leaderboard:month:zset', user.id)
+            if month_rank_pos is not None:
+                month_rank = month_rank_pos + 1
 
         return Response({
-            "daily_study": round(daily_study, 2),
-            "weekly_study": round(weekly_study, 2),
-            "monthly_study": round(monthly_study, 2),
-            "all_time": round(all_time, 2)
+            "study": {
+                "today": round(daily_study, 2),
+                "week": round(weekly_study, 2),
+                "month": round(monthly_study, 2)
+            },
+            "rank": {
+                "today": today_rank,
+                "week": week_rank,
+                "month": month_rank
+            }
         })
 
 
