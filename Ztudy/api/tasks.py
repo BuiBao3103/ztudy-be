@@ -68,6 +68,8 @@ def update_daily_leaderboard(target_date):
     """Cập nhật bảng xếp hạng hàng ngày"""
     offset = 0
     batch_size = 1000
+    has_data = False
+    
     while True:
         sessions = StudySession.objects.filter(date=target_date).values(
             'user_id', 'total_time'
@@ -77,16 +79,25 @@ def update_daily_leaderboard(target_date):
         if not sessions:
             break
 
+        has_data = True
         for session in sessions:
-            scaled_time = int(session['total_time'] * 10)  # Scale để lưu 1 chữ số thập phân
+            scaled_time = int(session['total_time'] * 10)
             redis_client.zincrby('leaderboard:today:zset', scaled_time, session['user_id'])
         offset += batch_size
+
+    # Nếu không có data, tạo ZSET với một dummy entry và xóa nó ngay
+    if not has_data:
+        redis_client.zadd('leaderboard:today:zset', {'dummy': 0})
+        redis_client.zrem('leaderboard:today:zset', 'dummy')
+        logger.info("Created empty daily leaderboard")
 
 
 def update_date_range_leaderboard(start_date, end_date, key_name):
     """Cập nhật bảng xếp hạng theo khoảng thời gian"""
     offset = 0
     batch_size = 1000
+    has_data = False
+    
     while True:
         sessions = StudySession.objects.filter(
             date__gte=start_date,
@@ -97,6 +108,7 @@ def update_date_range_leaderboard(start_date, end_date, key_name):
         if not sessions:
             break
 
+        has_data = True
         user_times = {}
         for session in sessions:
             user_id = session['user_id']
@@ -106,3 +118,9 @@ def update_date_range_leaderboard(start_date, end_date, key_name):
             scaled_time = int(time_value * 10)
             redis_client.zincrby(f'{key_name}:zset', scaled_time, user_id)
         offset += batch_size
+
+    # Nếu không có data, tạo ZSET với một dummy entry và xóa nó ngay
+    if not has_data:
+        redis_client.zadd(f'{key_name}:zset', {'dummy': 0})
+        redis_client.zrem(f'{key_name}:zset', 'dummy')
+        logger.info(f"Created empty leaderboard for {key_name}")
