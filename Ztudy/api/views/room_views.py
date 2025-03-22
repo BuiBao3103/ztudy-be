@@ -1,5 +1,12 @@
 from rest_flex_fields.views import FlexFieldsMixin
-from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, User
+from ..models import (
+    Room,
+    RoomCategory,
+    RoomParticipant,
+    UserActivityLog,
+    User,
+    Role,
+)
 from ..serializers import (
     RoomSerializer,
     RoomCategorySerializer,
@@ -26,6 +33,10 @@ import cloudinary.uploader
 import imghdr
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.db.models import F, Q
+from django.utils.timezone import now
+
+from ..models import Room, RoomParticipant, User, StudySession
 
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
@@ -165,7 +176,7 @@ class JoinRoomAPIView(APIView):
             request_list = [
                 {
                     "user": UserSerializer(req.user).data,
-                    "is_admin": req.is_admin,
+                    "role": req.role,
                     "is_approved": req.is_approved,
                     "is_out": req.is_out,
                 }
@@ -174,9 +185,9 @@ class JoinRoomAPIView(APIView):
 
             # Get all admin participants
             admin_participants = list(
-                RoomParticipant.objects.filter(room=room, is_admin=True).select_related(
-                    "user"
-                )
+                RoomParticipant.objects.filter(room=room)
+                .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
+                .select_related("user")
             )
 
             channel_layer = get_channel_layer()
@@ -271,7 +282,10 @@ class ApproveJoinRequestAPIView(APIView):
 
         user_request = request.user
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.is_admin:
+        if participant_user is None or not participant_user.role in [
+            Role.ADMIN,
+            Role.MODERATOR,
+        ]:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -312,7 +326,7 @@ class ApproveJoinRequestAPIView(APIView):
         request_list = [
             {
                 "user": UserSerializer(req.user).data,
-                "is_admin": req.is_admin,
+                "role": req.role,
                 "is_approved": req.is_approved,
                 "is_out": req.is_out,
             }
@@ -321,9 +335,9 @@ class ApproveJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(room=room, is_admin=True).select_related(
-                "user"
-            )
+            RoomParticipant.objects.filter(room=room)
+            .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
+            .select_related("user")
         )
 
         for admin in admin_participants:
@@ -347,7 +361,10 @@ class RejectJoinRequestAPIView(APIView):
 
         user_request = request.user
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.is_admin:
+        if participant_user is None or not participant_user.role not in [
+            Role.ADMIN,
+            Role.MODERATOR,
+        ]:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -387,7 +404,7 @@ class RejectJoinRequestAPIView(APIView):
         request_list = [
             {
                 "user": UserSerializer(req.user).data,
-                "is_admin": req.is_admin,
+                "role": req.role,
                 "is_approved": req.is_approved,
                 "is_out": req.is_out,
             }
@@ -396,9 +413,9 @@ class RejectJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(room=room, is_admin=True).select_related(
-                "user"
-            )
+            RoomParticipant.objects.filter(room=room)
+            .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
+            .select_related("user")
         )
 
         for admin in admin_participants:
@@ -422,7 +439,7 @@ class AssignRoomAdminAPIView(APIView):
 
         user_request = request.user
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.is_admin:
+        if participant_user is None or participant_user.role != Role.ADMIN:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -430,7 +447,7 @@ class AssignRoomAdminAPIView(APIView):
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
-        participant.is_admin = True
+        participant.role = Role.MODERATOR
         participant.save()
 
         channel_layer = get_channel_layer()
@@ -440,7 +457,7 @@ class AssignRoomAdminAPIView(APIView):
         async_to_sync(channel_layer.group_send)(
             f"user_{participant.user.id}",
             {
-                "type": "user_assigned_admin",
+                "type": "user_assigned_moderator",
                 "user": user_data,
                 "room_id": room.id,
                 "code_invite": code_invite,
@@ -461,7 +478,7 @@ class RevokeRoomAdminAPIView(APIView):
 
         user_request = request.user
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.is_admin:
+        if participant_user is None or participant_user.role != Role.ADMIN:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -469,7 +486,7 @@ class RevokeRoomAdminAPIView(APIView):
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
-        participant.is_admin = False
+        participant.role = Role.USER
         participant.save()
 
         channel_layer = get_channel_layer()
@@ -479,7 +496,7 @@ class RevokeRoomAdminAPIView(APIView):
         async_to_sync(channel_layer.group_send)(
             f"user_{participant.user.id}",
             {
-                "type": "user_revoked_admin",
+                "type": "user_revoked_moderator",
                 "user": user_data,
                 "room_id": room.id,
                 "code_invite": code_invite,
