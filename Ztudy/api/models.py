@@ -14,6 +14,51 @@ class RoomType(models.TextChoices):
     PUBLIC = 'PUBLIC', 'Public'
 
 
+class MonthlyLevel(models.TextChoices):
+    MEMBER = "MEMBER", "Member (0-10m)"
+    ENTRY = "ENTRY", "Entry (10m-60m)"
+    BEGINNER = "BEGINNER", "Beginner (1-3h)"
+    INTERMEDIATE = "INTERMEDIATE", "Intermediate (3-6h)"
+    PROFICIENT = "PROFICIENT", "Proficient (6-10h)"
+    ADVANCED = "ADVANCED", "Advanced (10-20h)"
+    EXPERT = "EXPERT", "Expert (20-40h)"
+    A_PLUS_STUDENT = "A_PLUS_STUDENT", "A+ Student (40-60h)"
+    MASTER = "MASTER", "Master (60-80h)"
+    GRANDMASTER = "GRANDMASTER", "Grandmaster (80-140h)"
+    STUDY_MACHINE = "STUDY_MACHINE", "Study-Machine (140-200h)"
+    STUDY_MASTER = "STUDY_MASTER", "Study Master (200+h)"
+
+    @classmethod
+    def get_role_from_time(cls, monthly_study_time):
+        """
+        Hàm tính cấp độ dựa trên thời gian học (giờ).
+        """
+        if monthly_study_time < 10 / 600000:
+            return cls.MEMBER
+        elif monthly_study_time < 1 / 60:
+            return cls.ENTRY
+        elif monthly_study_time < 3:
+            return cls.BEGINNER
+        elif monthly_study_time < 6:
+            return cls.INTERMEDIATE
+        elif monthly_study_time < 10:
+            return cls.PROFICIENT
+        elif monthly_study_time < 20:
+            return cls.ADVANCED
+        elif monthly_study_time < 40:
+            return cls.EXPERT
+        elif monthly_study_time < 60:
+            return cls.A_PLUS_STUDENT
+        elif monthly_study_time < 80:
+            return cls.MASTER
+        elif monthly_study_time < 140:
+            return cls.GRANDMASTER
+        elif monthly_study_time < 200:
+            return cls.STUDY_MACHINE
+        else:
+            return cls.STUDY_MASTER
+
+
 class BackgroundVideoType(SoftDeleteModel):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(null=True, blank=True)
@@ -27,7 +72,8 @@ class BackgroundVideoType(SoftDeleteModel):
 class BackgroundVideo(models.Model):
     youtube_url = models.URLField()
     image = CloudinaryField('image', null=True, blank=True)
-    type = models.ForeignKey(BackgroundVideoType, on_delete=models.CASCADE, related_name="videos")
+    type = models.ForeignKey(
+        BackgroundVideoType, on_delete=models.CASCADE, related_name="videos")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -42,7 +88,8 @@ class SessionGoal(models.Model):
         choices=SessionGoalsStatus.choices,
         default=SessionGoalsStatus.OPEN
     )
-    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name="goals")
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name="goals")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -56,9 +103,13 @@ class User(SoftDeleteModel, AbstractUser):
     avatar = CloudinaryField('avatar', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    objects = UserManager()
-
+    monthly_study_time = models.FloatField(default=0)
+    monthly_level = models.CharField(
+        max_length=20,
+        choices=MonthlyLevel.choices,
+        default=MonthlyLevel.MEMBER
+    )
+    
     def __str__(self):
         return self.username
 
@@ -95,12 +146,14 @@ class RoomCategory(models.Model):
 
 class Room(models.Model):
     name = models.CharField(max_length=255)
-    type = models.CharField(max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
+    type = models.CharField(
+        max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
     thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
     creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True,
                                      blank=True)
     code_invite = models.CharField(max_length=255, null=True, blank=True)
-    category = models.ForeignKey(RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey(
+        RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
     max_participants = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -111,8 +164,10 @@ class Room(models.Model):
 
 
 class RoomParticipant(models.Model):
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='participants')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_joined')
+    room = models.ForeignKey(
+        Room, on_delete=models.CASCADE, related_name='participants')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='rooms_joined')
     joined_at = models.DateTimeField(auto_now_add=True)
     is_admin = models.BooleanField(default=False)
     is_out = models.BooleanField(default=False)
@@ -123,8 +178,10 @@ class RoomParticipant(models.Model):
 
 
 class Interest(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interests")
-    category = models.ForeignKey(RoomCategory, on_delete=models.CASCADE, related_name="user_interests")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="interests")
+    category = models.ForeignKey(
+        RoomCategory, on_delete=models.CASCADE, related_name="user_interests")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -135,8 +192,10 @@ class Interest(models.Model):
 
 
 class UserActivityLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='activity_logs')
-    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='activity_logs')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='activity_logs')
+    room = models.ForeignKey(
+        'Room', on_delete=models.CASCADE, related_name='activity_logs')
     joined_at = models.DateTimeField(auto_now_add=True)
     left_at = models.DateTimeField(null=True, blank=True)
     interaction_count = models.IntegerField(default=0)

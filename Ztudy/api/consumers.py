@@ -6,7 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import F
 from django.utils.timezone import now
 
-from .models import Room, RoomParticipant, User, StudySession
+from .models import Room, RoomParticipant, User, StudySession, MonthlyLevel
 from .serializers import UserSerializer
 
 
@@ -211,7 +211,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def broadcast_participant_list(self):
         participants = await sync_to_async(list)(
-            RoomParticipant.objects.filter(room=self.room, is_out=False).select_related('user')
+            RoomParticipant.objects.filter(
+                room=self.room, is_out=False).select_related('user')
         )
 
         participant_data_list = []
@@ -242,7 +243,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def broadcast_pending_requests(self):
         try:
             pending_requests = await sync_to_async(list)(
-                RoomParticipant.objects.filter(room=self.room, is_approved=False).select_related('user')
+                RoomParticipant.objects.filter(
+                    room=self.room, is_approved=False).select_related('user')
             )
 
             request_list = []
@@ -257,7 +259,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 request_list.append(participant_data)
 
             admin_participants = await sync_to_async(list)(
-                RoomParticipant.objects.filter(room=self.room, is_admin=True).select_related('user')
+                RoomParticipant.objects.filter(
+                    room=self.room, is_admin=True).select_related('user')
             )
 
             for admin in admin_participants:
@@ -290,6 +293,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             self.is_active = True
 
             await self.channel_layer.group_add("global_online_users", self.channel_name)
+            await self.channel_layer.group_add(f"user_{self.user.id}", self.channel_name)
             await self.accept()
 
             await self.broadcast_online_count()
@@ -308,6 +312,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 await self.update_study_time(self.user, self.session_start, now())
 
             await self.channel_layer.group_discard("global_online_users", self.channel_name)
+            await self.channel_layer.group_discard(f"user_{self.user.id}", self.channel_name)
             await self.broadcast_online_count()
 
     async def auto_update_study_time(self):
@@ -333,6 +338,37 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 total_time=F('total_time') + study_duration
             )
 
+        await sync_to_async(User.objects.filter(id=user.id).update)(
+            monthly_study_time=F('monthly_study_time') + study_duration
+        )
+
+        updated_user = await sync_to_async(User.objects.get)(id=user.id)
+
+        new_level = MonthlyLevel.get_role_from_time(
+            updated_user.monthly_study_time)
+        if new_level != updated_user.monthly_level:
+
+            await sync_to_async(User.objects.filter(id=user.id).update)(
+                monthly_level=new_level
+            )
+
+            await self.send_level_achievement_notification(
+                user.id,
+                new_level,
+                updated_user.monthly_study_time
+            )
+
+    async def send_level_achievement_notification(self, user_id, new_level, monthly_study_time):
+
+        await self.channel_layer.group_send(
+            f"user_{user_id}",
+            {
+                "type": "send_achievement",
+                "level": new_level,
+                "monthly_study_time": monthly_study_time
+            }
+        )
+
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
 
@@ -348,4 +384,11 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "online_count",
             "online_count": event["online_count"]
+        }))
+
+    async def send_achievement(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'send_achievement',
+            'level': event['level'],
+            'monthly_study_time': event['monthly_study_time']
         }))
