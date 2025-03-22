@@ -155,6 +155,14 @@ class JoinRoomAPIView(APIView):
 
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
+        
+        # Check if room is active
+        if not room.is_active:
+            return Response(
+                {"detail": "This room has been ended!"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         user = request.user
 
         room_data = RoomJoinSerializer(room).data
@@ -361,7 +369,7 @@ class RejectJoinRequestAPIView(APIView):
 
         user_request = request.user
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.role not in [
+        if participant_user is None or not participant_user.role  in [
             Role.ADMIN,
             Role.MODERATOR,
         ]:
@@ -506,4 +514,42 @@ class RevokeRoomAdminAPIView(APIView):
         return Response(
             {"message": "User has been revoked as admin successfully!"},
             status=status.HTTP_200_OK,
+        )
+
+
+class EndRoomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, code_invite):
+        room = get_object_or_404(Room, code_invite=code_invite)
+        
+        # Check if user is admin
+        participant_user = get_object_or_404(RoomParticipant, user=request.user, room=room)
+        if participant_user.role != Role.ADMIN:
+            return Response(
+                {"detail": "Only room admin can end the room!"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Update room status
+        room.is_active = False
+        room.save()
+
+        # Update all participants status
+        RoomParticipant.objects.filter(room=room).update(is_out=True)
+
+        # Notify all users in the room through websocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{room.id}",
+            {
+                "type": "room_ended",
+                "room_id": room.id,
+                "code_invite": code_invite
+            }
+        )
+
+        return Response(
+            {"message": "Room has been ended successfully!"},
+            status=status.HTTP_200_OK
         )

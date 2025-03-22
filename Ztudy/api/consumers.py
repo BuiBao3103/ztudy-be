@@ -330,6 +330,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def room_ended(self, event):
+        """Handle room ended event"""
+        await self.send(text_data=json.dumps({
+            'type': 'room_ended',
+            'room_id': event['room_id'],
+            'code_invite': event['code_invite']
+        }))
+        
+        # Disconnect user from room
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+
 
 class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def connect(self):

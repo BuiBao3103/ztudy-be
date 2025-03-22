@@ -35,6 +35,7 @@ from .room_views import (
     RejectJoinRequestAPIView,
     AssignRoomAdminAPIView,
     RevokeRoomAdminAPIView,
+    EndRoomAPIView,
 )
 from .stats_views import StudyTimeStatsView, StudyTimeChartView, LeaderboardView
 from .views import chat_room
