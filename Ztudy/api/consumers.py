@@ -1,6 +1,8 @@
 import asyncio
 import json
-
+from .models import (
+    Role,
+)
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import F
@@ -8,6 +10,10 @@ from django.utils.timezone import now
 
 from .models import Room, RoomParticipant, User, StudySession
 from .serializers import UserSerializer
+from django.db.models import F, Q
+from django.utils.timezone import now
+
+from .models import Room, RoomParticipant, User, StudySession
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -69,8 +75,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.broadcast_participant_list()
 
-        # If this is an admin, send them the pending requests list
-        if participant.is_admin:
+        # If this is an admin and moderator, send them the pending requests list
+        if participant.role == Role.MODERATOR or participant.role == Role.ADMIN:
             await self.broadcast_pending_requests()
 
     async def user_approved(self, event):
@@ -124,7 +130,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
             )
 
-    async def user_assigned_admin(self, event):
+    async def user_assigned_moderator(self, event):
         user = event["user"]
         room_id = event["room_id"]
         code_invite = event["code_invite"]
@@ -133,7 +139,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(
                 text_data=json.dumps(
                     {
-                        "type": "user_assigned_admin",
+                        "type": "user_assigned_moderator",
                         "user": user,
                         "room_id": room_id,
                         "code_invite": code_invite,
@@ -145,7 +151,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.broadcast_pending_requests()
             await self.broadcast_participant_list()
 
-    async def user_revoked_admin(self, event):
+    async def user_revoked_moderator(self, event):
         user = event["user"]
         room_id = event["room_id"]
         code_invite = event["code_invite"]
@@ -154,7 +160,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(
                 text_data=json.dumps(
                     {
-                        "type": "user_revoked_admin",
+                        "type": "user_revoked_moderator",
                         "user": user,
                         "room_id": room_id,
                         "code_invite": code_invite,
@@ -265,7 +271,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user_data = UserSerializer(participant.user).data
             participant_data = {
                 "user": user_data,
-                "is_admin": participant.is_admin,
+                "role": participant.role,
                 "is_approved": participant.is_approved,
                 "is_out": participant.is_out,
             }
@@ -296,16 +302,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 user_data = UserSerializer(participant.user).data
                 participant_data = {
                     "user": user_data,
-                    "is_admin": participant.is_admin,
+                    "role": participant.role,
                     "is_approved": participant.is_approved,
                     "is_out": participant.is_out,
                 }
                 request_list.append(participant_data)
 
             admin_participants = await sync_to_async(list)(
-                RoomParticipant.objects.filter(
-                    room=self.room, is_admin=True
-                ).select_related("user")
+                RoomParticipant.objects.filter(room=self.room)
+                .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
+                .select_related("user")
             )
 
             for admin in admin_participants:
