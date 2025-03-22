@@ -1,10 +1,10 @@
 from allauth.account.views import ConfirmEmailView
 from django.urls import path, include, re_path
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
 
 from . import views
 from .admin import admin
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -90,6 +90,8 @@ urlpatterns = [
          name='room-category-view-create'),
     path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(),
          name='room-category-view-detail'),
+    path("api/v1/room-categories/<int:pk>/upload-thumbnail/", views.UploadCategoryThumbnailView.as_view(),
+         name="upload-category-thumbnail"),
 
     # Room Participant URLs
     path('api/v1/room-participants/', views.RoomParticipantListCreate.as_view(),

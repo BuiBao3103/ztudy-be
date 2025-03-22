@@ -191,6 +191,8 @@ class RoomJoinSerializer(serializers.ModelSerializer):
 class ThumbnailUploadSerializer(serializers.Serializer):
     thumbnail = serializers.ImageField()
 
+class CategoryThumbnailUploadSerializer(serializers.Serializer):
+    thumbnail = serializers.ImageField()
 
 class RoomParticipantSerializer(FlexFieldsModelSerializer):
     class Meta:

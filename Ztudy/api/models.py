@@ -237,6 +237,7 @@ class RoomCategory(models.Model):
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
 
     def __str__(self):
         return f"{self.id}_{self.name}"

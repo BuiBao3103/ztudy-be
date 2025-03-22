@@ -1,21 +1,23 @@
-from rest_flex_fields.views import FlexFieldsMixin
-from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, User
-from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
-    UserSerializer, RoomJoinSerializer
-from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
-from ..pagination import CustomPagination
-from ..ml import content_based_filtering, collaborative_filtering
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from channels.layers import get_channel_layer
+import imghdr
+
+import cloudinary.uploader
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_flex_fields.views import FlexFieldsMixin
+from rest_framework import status, generics, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework import status, generics, permissions
-import cloudinary.uploader
-import imghdr
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from rest_framework.views import APIView
+
+from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
+from ..ml import content_based_filtering, collaborative_filtering
+from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog
+from ..pagination import CustomPagination
+from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
+    UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer
 
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
@@ -29,6 +31,39 @@ class RoomRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetriev
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permit_list_expands = ['category', 'creator_user']
+
+
+class UploadCategoryThumbnailView(generics.CreateAPIView):
+    queryset = RoomCategory.objects.all()
+    parser_classes = (MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        request_body=CategoryThumbnailUploadSerializer,
+        responses={201: openapi.Response(
+            'Thumbnail uploaded successfully', CategoryThumbnailUploadSerializer)},
+        operation_description="Upload an thumbnail image to Cloudinary",
+    )
+    def post(self, request, *args, **kwargs):
+        category = get_object_or_404(RoomCategory, id=kwargs['pk'])
+        file = request.FILES.get('thumbnail')
+
+        if not file:
+            return Response({'detail': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not imghdr.what(file):
+            return Response({'detail': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="ztudy/category_thumbnails/",
+            public_id=f"category_{category.id}_thumbnail",
+            overwrite=True
+        )
+
+        category.thumbnail = upload_result['secure_url']
+        category.save()
+
+        return Response({'thumbnail': category.thumbnail}, status=status.HTTP_201_CREATED)
 
 
 class UploadThumbnailView(generics.CreateAPIView):
@@ -379,7 +414,5 @@ class AssignRoomAdminAPIView(APIView):
                 'code_invite': code_invite
             }
         )
-
-
 
         return Response({'message': 'User has been assigned as admin successfully!'}, status=status.HTTP_200_OK)
