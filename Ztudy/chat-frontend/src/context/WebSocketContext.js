@@ -153,7 +153,10 @@ export const WebSocketProvider = ({ children }) => {
                 case "user_revoked_moderator":
                     setRole("USER");
                     break;
-
+                case "room_ended":
+                    setCurrentRoom(null);
+                    setIsConnected(false);
+                    break;
                 default:
                     console.log("Unhandled message type:", data.type);
             }
