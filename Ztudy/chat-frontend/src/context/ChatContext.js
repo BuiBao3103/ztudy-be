@@ -2,21 +2,21 @@ import React, { createContext, useState } from "react";
 
 export const ChatContext = createContext({
   messages: [],
-  setMessages: () => {},
+  setMessages: () => { },
   participants: [],
-  setParticipants: () => {},
+  setParticipants: () => { },
   isConnected: false,
-  setIsConnected: () => {},
+  setIsConnected: () => { },
   currentRoom: null,
-  setCurrentRoom: () => {},
+  setCurrentRoom: () => { },
   typingUsers: new Set(),
-  setTypingUsers: () => {},
+  setTypingUsers: () => { },
   pendingRequests: [],
-  setPendingRequests: () => {},
-  isAdmin: false,
-  setIsAdmin: () => {},
+  setPendingRequests: () => { },
+  role: "USER",
+  setRole: () => { },
   isPending: false,
-  setIsPending: () => {},
+  setIsPending: () => { },
 });
 
 export const ChatProvider = ({ children }) => {
@@ -26,7 +26,7 @@ export const ChatProvider = ({ children }) => {
   const [currentRoom, setCurrentRoom] = useState(null);
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
   const value = {
@@ -42,8 +42,8 @@ export const ChatProvider = ({ children }) => {
     setTypingUsers,
     pendingRequests,
     setPendingRequests,
-    isAdmin,
-    setIsAdmin,
+    role,
+    setRole,
     isPending,
     setIsPending,
   };
