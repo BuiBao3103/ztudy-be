@@ -35,7 +35,7 @@ export const WebSocketProvider = ({ children }) => {
         setTypingUsers,
         setIsPending,
         setPendingRequests,
-        setIsAdmin,
+        setRole,
     } = useContext(ChatContext);
 
     const connectChatSocket = (roomCode) => {
@@ -146,12 +146,12 @@ export const WebSocketProvider = ({ children }) => {
                     setParticipants(data.participants);
                     break;
 
-                case "user_assigned_admin":
-                    setIsAdmin(true);
+                case "user_assigned_moderator":
+                    setRole("MODERATOR");
                     break;
-                    
-                case "user_revoked_admin":
-                    setIsAdmin(false);
+
+                case "user_revoked_moderator":
+                    setRole("USER");
                     break;
 
                 default:
