@@ -19,7 +19,7 @@ from rest_framework import serializers
 
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
-                     Room, RoomParticipant, Interest, StudySession)
+                     Room, RoomParticipant, Interest, StudySession, RoomType)
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 
 User = get_user_model()
@@ -134,7 +134,7 @@ class SoundSerializer(serializers.ModelSerializer):
 class RoomCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomCategory
-        fields = '__all__'
+        exclude = ['thumbnail']
 
     def create(self, validated_data):
         if 'name' in validated_data:
@@ -161,6 +161,9 @@ class RoomSerializer(FlexFieldsModelSerializer):
             validated_data['code_invite'] = generate_unique_code(
                 Room, 'code_invite', 6)
 
+        if validated_data['type'] == RoomType.PUBLIC:
+            category = RoomCategory.objects.get(id=validated_data['category'].id)
+            validated_data['thumbnail'] = category.thumbnail
         room = super().create(validated_data)
 
         if room.creator_user:
