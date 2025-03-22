@@ -1,7 +1,7 @@
-import React, {useState, useContext} from "react";
-import {WebSocketContext} from "../context/WebSocketContext";
-import {ChatContext} from "../context/ChatContext";
-import {joinRoom} from "../services/api";
+import React, { useState, useContext } from "react";
+import { WebSocketContext } from "../context/WebSocketContext";
+import { ChatContext } from "../context/ChatContext";
+import { joinRoom } from "../services/api";
 import ChatArea from "./ChatArea";
 import RoomControls from "./RoomControls";
 import UserList from "./UserList";
@@ -11,14 +11,14 @@ const ChatRoom = () => {
     const [roomCode, setRoomCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const {connectChatSocket, disconnectChatSocket} =
+    const { connectChatSocket, disconnectChatSocket } =
         useContext(WebSocketContext);
     const {
         currentRoom,
         setCurrentRoom,
         isConnected,
-        isAdmin,
-        setIsAdmin,
+        role,
+        setRole,
         isPending,
         setIsPending,
     } = useContext(ChatContext);
@@ -46,7 +46,7 @@ const ChatRoom = () => {
                 isActive: data.room.is_active,
                 creatorUser: data.room.creator_user,
             });
-            setIsAdmin(data.participant.is_admin);
+            setRole(data.participant.role);
             connectChatSocket(data.room.code_invite);
         } catch (err) {
             setError(err.message || "Failed to join room. Please try again.");
@@ -186,13 +186,17 @@ const ChatRoom = () => {
                         Room: {currentRoom.name} ({currentRoom.type})
                     </h2>
                     <p className="text-sm text-gray-400 mt-1">Code: {currentRoom.code}</p>
-                    {isAdmin && (
-                        <span className="mt-2 inline-block px-2 py-1 bg-green-600 text-white text-xs rounded">
-              Admin
-            </span>
-                    )}
+                    {(role === "ADMIN") && (<span className="mt-2 inline-block px-2 py-1 bg-green-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
+                    {(role === "MODERATOR") && (<span className="mt-2 inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
+                    {(role === "USER") && (<span className="mt-2 inline-block px-2 py-1 bg-gray-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
                 </div>
-                <UserList/>
+                <UserList />
                 <div className="mt-auto p-4 border-t border-[#2a2a2a]">
                     <button
                         onClick={handleLeaveRoom}
@@ -206,14 +210,14 @@ const ChatRoom = () => {
             {/* Main Chat Area */}
             <div className="flex-1 flex">
                 <div className="flex-1 flex flex-col bg-[#111111]">
-                    <ChatArea/>
-                    <RoomControls/>
+                    <ChatArea />
+                    <RoomControls />
                 </div>
 
                 {/* Request List - Only show for admin */}
-                {isAdmin && (
+                {(role === "ADMIN" || role === "MODERATOR") && (
                     <div className="w-72 border-l border-[#2a2a2a]">
-                        <RequestList/>
+                        <RequestList />
                     </div>
                 )}
             </div>
