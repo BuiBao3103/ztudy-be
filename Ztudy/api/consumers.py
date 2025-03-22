@@ -309,7 +309,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             self.is_active = False
 
             if hasattr(self, 'session_start'):
-                await self.update_study_time(self.user, self.session_start, now())
+                await self.update_study_time(self.session_start, now())
 
             await self.channel_layer.group_discard("global_online_users", self.channel_name)
             await self.channel_layer.group_discard(f"user_{self.user.id}", self.channel_name)
@@ -319,15 +319,15 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         while self.is_active:
             await asyncio.sleep(360)
             if self.is_active:
-                await self.update_study_time(self.user, self.session_start, now())
+                await self.update_study_time(self.session_start, now())
                 self.session_start = now()
 
-    async def update_study_time(self, user, session_start, session_end):
+    async def update_study_time(self, session_start, session_end):
         study_duration = (session_end - session_start).total_seconds() / 3600
         study_date = session_start.date()
 
         record, created = await sync_to_async(StudySession.objects.get_or_create)(
-            user=user, date=study_date
+            user=self.user, date=study_date
         )
 
         if created:
@@ -338,28 +338,27 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 total_time=F('total_time') + study_duration
             )
 
-        await sync_to_async(User.objects.filter(id=user.id).update)(
+        await sync_to_async(User.objects.filter(id=self.user.id).update)(
             monthly_study_time=F('monthly_study_time') + study_duration
         )
 
-        updated_user = await sync_to_async(User.objects.get)(id=user.id)
+        new_monthly_time = self.user.monthly_study_time + study_duration
+        self.user.monthly_study_time = new_monthly_time
 
-        new_level = MonthlyLevel.get_role_from_time(
-            updated_user.monthly_study_time)
-        if new_level != updated_user.monthly_level:
-
-            await sync_to_async(User.objects.filter(id=user.id).update)(
+        new_level = MonthlyLevel.get_role_from_time(new_monthly_time)
+        if MonthlyLevel.compare_levels(new_level, self.user.monthly_level) > 0:
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(
                 monthly_level=new_level
             )
+            self.user.monthly_level = new_level
 
             await self.send_level_achievement_notification(
-                user.id,
+                self.user.id,
                 new_level,
-                updated_user.monthly_study_time
+                new_monthly_time
             )
 
     async def send_level_achievement_notification(self, user_id, new_level, monthly_study_time):
-
         await self.channel_layer.group_send(
             f"user_{user_id}",
             {

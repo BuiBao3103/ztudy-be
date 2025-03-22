@@ -6,14 +6,13 @@ let onelineSocket = new WebSocket(
 
 onelineSocket.onmessage = function (event) {
   const data = JSON.parse(event.data);
-  console.log(data);
   if (data.type === "online_count") {
     console.log(`Số người online hiện tại: ${data.online_count}`);
     updateOnlineCount(data.online_count);
-  }
-
-  if (data.type === "send_achievement") {
+  } else if (data.type === "send_achievement") {
     console.log(`Cập nhật level mới: ${data.level}`);
+  } else {
+    console.log("unhandle data", data);
   }
 };
 

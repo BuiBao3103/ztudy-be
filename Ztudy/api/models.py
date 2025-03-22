@@ -33,9 +33,9 @@ class MonthlyLevel(models.TextChoices):
         """
         Hàm tính cấp độ dựa trên thời gian học (giờ).
         """
-        if monthly_study_time < 10 / 600000:
+        if monthly_study_time < 10 / 60:
             return cls.MEMBER
-        elif monthly_study_time < 1 / 60:
+        elif monthly_study_time < 1:
             return cls.ENTRY
         elif monthly_study_time < 3:
             return cls.BEGINNER
@@ -57,6 +57,26 @@ class MonthlyLevel(models.TextChoices):
             return cls.STUDY_MACHINE
         else:
             return cls.STUDY_MASTER
+
+    @classmethod
+    def compare_levels(cls, level1, level2):
+        level_ranks = [
+            cls.MEMBER,
+            cls.ENTRY,
+            cls.BEGINNER,
+            cls.INTERMEDIATE,
+            cls.PROFICIENT,
+            cls.ADVANCED,
+            cls.EXPERT,
+            cls.A_PLUS_STUDENT,
+            cls.MASTER,
+            cls.GRANDMASTER,
+            cls.STUDY_MACHINE,
+            cls.STUDY_MASTER
+        ]
+        rank1 = level_ranks.index(level1)
+        rank2 = level_ranks.index(level2)
+        return rank1 - rank2
 
 
 class BackgroundVideoType(SoftDeleteModel):
@@ -109,7 +129,7 @@ class User(SoftDeleteModel, AbstractUser):
         choices=MonthlyLevel.choices,
         default=MonthlyLevel.MEMBER
     )
-    
+
     def __str__(self):
         return self.username
 
