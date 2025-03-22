@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from celery.schedules import crontab
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -279,7 +280,6 @@ USE_TZ = False
 
 # settings.py
 LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
-
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
@@ -288,6 +288,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
         # Expires before next run
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
+    },
+    'reset_monthly_study_time': {
+        'task': 'api.tasks.reset_monthly_study_time',
+        'schedule': crontab(minute=0, hour=0, day_of_month=1)
     },
 }
 

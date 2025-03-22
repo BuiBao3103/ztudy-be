@@ -4,7 +4,7 @@ from datetime import timedelta, date
 import redis
 import logging
 from django.conf import settings
-from .models import StudySession  # Giả định model đã định nghĩa
+from .models import StudySession, User, MonthlyLevel  # Giả định model đã định nghĩa
 
 # Thiết lập logging
 logger = logging.getLogger(__name__)
@@ -124,3 +124,21 @@ def update_date_range_leaderboard(start_date, end_date, key_name):
         redis_client.zadd(f'{key_name}:zset', {'dummy': 0})
         redis_client.zrem(f'{key_name}:zset', 'dummy')
         logger.info(f"Created empty leaderboard for {key_name}")
+
+
+@shared_task
+def reset_monthly_study_time():
+    """Reset monthly study time và level cho tất cả users vào đầu tháng"""
+    try:
+        # Reset monthly_study_time về 0 và level về MEMBER
+        updated_count = User.objects.all().update(
+            monthly_study_time=0,
+        )
+        
+        logger.info(
+            f"Successfully reset monthly stats for {updated_count} users at {timezone.now()}"
+        )
+        return f"Reset completed for {updated_count} users"
+    except Exception as e:
+        logger.error(f"Error resetting monthly stats: {str(e)}")
+        raise
