@@ -5,7 +5,7 @@ import { assignAdmin, revokeAdmin } from "../services/api";
 import { WebSocketContext } from "../context/WebSocketContext";
 
 const UserList = () => {
-  const { participants, currentRoom, isAdmin } = useContext(ChatContext);
+  const { participants, currentRoom, role } = useContext(ChatContext);
   const { currentUser } = useContext(UserContext);
   const { users } = useContext(WebSocketContext);
   const [hoveredUser, setHoveredUser] = useState(null);
@@ -41,10 +41,9 @@ const UserList = () => {
             <div
               key={participant.user.id}
               className={`flex items-center space-x-3 p-2 rounded-lg mb-1 
-                ${
-                  participant.user.id === currentUser?.id
-                    ? "bg-[#2a2a2a]"
-                    : "hover:bg-[#222222]"
+                ${participant.user.id === currentUser?.id
+                  ? "bg-[#2a2a2a]"
+                  : "hover:bg-[#222222]"
                 }
                 transition-colors duration-200 relative group`}
               onMouseEnter={() => setHoveredUser(participant.user.id)}
@@ -63,19 +62,18 @@ const UserList = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p
-                    className={`text-sm font-medium truncate ${
-                      participant.user.id === currentUser?.id
-                        ? "text-gray-200"
-                        : "text-gray-300"
-                    }`}
+                    className={`text-sm font-medium truncate ${participant.user.id === currentUser?.id
+                      ? "text-gray-200"
+                      : "text-gray-300"
+                      }`}
                   >
                     {participant.user.username}
                     {participant.user.id === currentUser?.id && (
                       <span className="ml-2 text-xs text-gray-500">(You)</span>
                     )}
-                    {participant.is_admin && (
+                    {(participant.role === "ADMIN" || participant.role === "MODERATOR") && (
                       <span className="ml-2 text-xs text-green-500">
-                        (Admin)
+                        {participant.role}
                       </span>
                     )}
                   </p>
@@ -85,9 +83,9 @@ const UserList = () => {
                 )}
               </div>
 
-              {/* Assign Admin Button */}
-              {isAdmin &&
-                !participant.is_admin &&
+              {/* Assign Moderator Button */}
+              {role === "ADMIN" &&
+                !(participant.role === "ADMIN" || participant.role === "MODERATOR") &&
                 hoveredUser === participant.user.id &&
                 participant.user.id !== currentUser?.id && (
                   <button
@@ -95,13 +93,13 @@ const UserList = () => {
                     className="absolute right-2 px-2 py-1 text-xs bg-green-600 text-white rounded
                     hover:bg-green-700 transition-colors duration-200 opacity-0 group-hover:opacity-100"
                   >
-                    Make Admin
+                    Make Moderator
                   </button>
                 )}
 
               {/* Revoke Admin Button */}
-              {isAdmin &&
-                participant.is_admin &&
+              {role === "ADMIN" &&
+                (participant.role === "MODERATOR") &&
                 hoveredUser === participant.user.id &&
                 participant.user.id !== currentUser?.id &&
                 participant.user.id !== currentRoom?.creator?.id && (
@@ -110,7 +108,7 @@ const UserList = () => {
                     className="absolute right-2 px-2 py-1 text-xs bg-red-600 text-white rounded
                     hover:bg-red-700 transition-colors duration-200 opacity-0 group-hover:opacity-100"
                   >
-                    Revoke Admin
+                    Revoke Moderator
                   </button>
                 )}
             </div>
