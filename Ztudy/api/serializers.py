@@ -254,11 +254,19 @@ class LeaderboardUserSerializer(serializers.ModelSerializer):
 
 class CustomUserDetailsSerializer(UserDetailsSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
+    
+    def validate_username(self, value):
+        # Skip username uniqueness validation
+        return value
 
     class Meta:
-        model = User
+        model = get_user_model()
         exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups',
                    'user_permissions']
+        read_only_fields = ['email']
+        extra_kwargs = {
+            'username': {'validators': []}
+        }
 
 
 class CustomRegisterSerializer(RegisterSerializer):

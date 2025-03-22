@@ -196,6 +196,7 @@ class SessionGoal(models.Model):
 
 
 class User(SoftDeleteModel, AbstractUser):
+    username = models.CharField(max_length=150, unique=False)
     email = models.EmailField(unique=True)
     is_online = models.BooleanField(default=False)
     avatar = CloudinaryField('avatar', null=True, blank=True)
@@ -208,6 +209,10 @@ class User(SoftDeleteModel, AbstractUser):
         default=MonthlyLevel.MEMBER
     )
 
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+    
+    objects = UserManager()
     def __str__(self):
         return self.username
 
