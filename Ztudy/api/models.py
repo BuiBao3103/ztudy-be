@@ -78,6 +78,84 @@ class MonthlyLevel(models.TextChoices):
         rank2 = level_ranks.index(level2)
         return rank1 - rank2
 
+    @classmethod
+    def next_level(cls, level):
+        level_ranks = [
+            cls.MEMBER,
+            cls.ENTRY,
+            cls.BEGINNER,
+            cls.INTERMEDIATE,
+            cls.PROFICIENT,
+            cls.ADVANCED,
+            cls.EXPERT,
+            cls.A_PLUS_STUDENT,
+            cls.MASTER,
+            cls.GRANDMASTER,
+            cls.STUDY_MACHINE,
+            cls.STUDY_MASTER
+        ]
+        current_index = level_ranks.index(level)
+        if current_index < len(level_ranks) - 1:
+            return level_ranks[current_index + 1]
+        return None
+
+    @classmethod
+    def time_to_next_level(cls, level, monthly_study_time):
+        if level == cls.MEMBER:
+            return 10 / 60 - monthly_study_time
+        elif level == cls.ENTRY:
+            return 1 - monthly_study_time
+        elif level == cls.BEGINNER:
+            return 3 - monthly_study_time
+        elif level == cls.INTERMEDIATE:
+            return 6 - monthly_study_time
+        elif level == cls.PROFICIENT:
+            return 10 - monthly_study_time
+        elif level == cls.ADVANCED:
+            return 20 - monthly_study_time
+        elif level == cls.EXPERT:
+            return 40 - monthly_study_time
+        elif level == cls.A_PLUS_STUDENT:
+            return 60 - monthly_study_time
+        elif level == cls.MASTER:
+            return 80 - monthly_study_time
+        elif level == cls.GRANDMASTER:
+            return 140 - monthly_study_time
+        elif level == cls.STUDY_MACHINE:
+            return 200 - monthly_study_time
+        elif level == cls.STUDY_MASTER:
+            return 0
+        return 0
+
+    @classmethod
+    def progress(cls, level, monthly_study_time):
+        if level == cls.MEMBER:
+            return monthly_study_time / (10 / 60)
+        elif level == cls.ENTRY:
+            return monthly_study_time / 1
+        elif level == cls.BEGINNER:
+            return monthly_study_time / 3
+        elif level == cls.INTERMEDIATE:
+            return monthly_study_time / 6
+        elif level == cls.PROFICIENT:
+            return monthly_study_time / 10
+        elif level == cls.ADVANCED:
+            return monthly_study_time / 20
+        elif level == cls.EXPERT:
+            return monthly_study_time / 40
+        elif level == cls.A_PLUS_STUDENT:
+            return monthly_study_time / 60
+        elif level == cls.MASTER:
+            return monthly_study_time / 80
+        elif level == cls.GRANDMASTER:
+            return monthly_study_time / 140
+        elif level == cls.STUDY_MACHINE:
+            return monthly_study_time / 200
+        elif level == cls.STUDY_MASTER:
+            return 1
+        return 0
+            
+            
 
 class BackgroundVideoType(SoftDeleteModel):
     name = models.CharField(max_length=255, unique=True)

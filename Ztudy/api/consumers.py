@@ -317,7 +317,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
     async def auto_update_study_time(self):
         while self.is_active:
-            await asyncio.sleep(360)
+            await asyncio.sleep(15)
             if self.is_active:
                 await self.update_study_time(self.session_start, now())
                 self.session_start = now()

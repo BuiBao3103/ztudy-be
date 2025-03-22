@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models import StudySession, User
+from ..models import StudySession, User, MonthlyLevel
 from ..pagination import CustomPagination
 from ..serializers import LeaderboardUserSerializer
 
@@ -49,32 +49,41 @@ class StudyTimeStatsView(APIView):
 
         # Kiểm tra rank today
         if redis_client.exists('leaderboard:today:zset'):
-            today_rank_pos = redis_client.zrevrank('leaderboard:today:zset', user.id)
+            today_rank_pos = redis_client.zrevrank(
+                'leaderboard:today:zset', user.id)
             if today_rank_pos is not None:
                 today_rank = today_rank_pos + 1
 
         # Kiểm tra rank week
         if redis_client.exists('leaderboard:week:zset'):
-            week_rank_pos = redis_client.zrevrank('leaderboard:week:zset', user.id)
+            week_rank_pos = redis_client.zrevrank(
+                'leaderboard:week:zset', user.id)
             if week_rank_pos is not None:
                 week_rank = week_rank_pos + 1
 
         # Kiểm tra rank month
         if redis_client.exists('leaderboard:month:zset'):
-            month_rank_pos = redis_client.zrevrank('leaderboard:month:zset', user.id)
+            month_rank_pos = redis_client.zrevrank(
+                'leaderboard:month:zset', user.id)
             if month_rank_pos is not None:
                 month_rank = month_rank_pos + 1
 
         return Response({
             "study": {
-                "today": round(daily_study, 2),
-                "week": round(weekly_study, 2),
-                "month": round(monthly_study, 2)
+                "today": round(daily_study, 1),
+                "week": round(weekly_study, 1),
+                "month": round(monthly_study, 1)
             },
             "rank": {
                 "today": today_rank,
                 "week": week_rank,
                 "month": month_rank
+            },
+            "current_monthly_level": {
+                "level": MonthlyLevel.get_role_from_time(monthly_study),
+                "next_level": MonthlyLevel.next_level(MonthlyLevel.get_role_from_time(float(monthly_study))),
+                "progress": round(MonthlyLevel.progress(MonthlyLevel.get_role_from_time(monthly_study), monthly_study), 1),
+                "time_to_next_level": round(MonthlyLevel.time_to_next_level(MonthlyLevel.get_role_from_time(monthly_study), monthly_study), 1)
             }
         })
 
