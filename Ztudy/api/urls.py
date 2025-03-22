@@ -64,7 +64,8 @@ urlpatterns = [
     path('api/v1/sounds/<int:pk>/',
          views.SoundDetail.as_view(), name='sound-view-detail'),
     path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
-    path('api/v1/sounds/<int:pk>/stream/', views.StreamAudioView.as_view(), name='stream-audio'),
+    path('api/v1/sounds/<int:pk>/stream/',
+         views.StreamAudioView.as_view(), name='stream-audio'),
 
     # Room URLs
     path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
@@ -74,6 +75,8 @@ urlpatterns = [
          views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
     path('api/v1/rooms/suggested/',
          views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
+    path('api/v1/rooms/trending/',
+         views.RoomTrendingList.as_view(), name='trending-rooms'),
     path('api/v1/rooms/<str:code_invite>/join/',
          views.JoinRoomAPIView.as_view(), name='join-room'),
     path('api/v1/rooms/<str:code_invite>/leave/',

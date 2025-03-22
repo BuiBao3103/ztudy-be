@@ -19,6 +19,8 @@ from ..pagination import CustomPagination
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
     UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer
 
+from django.db.models import Count, Q, Avg
+
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = Room.objects.all()
@@ -31,6 +33,40 @@ class RoomRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetriev
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permit_list_expands = ['category', 'creator_user']
+
+
+class RoomTrendingList(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAPIView):
+    serializer_class = RoomSerializer
+    pagination_class = CustomPagination
+    permit_list_expands = ['category', 'creator_user']
+
+    def get_queryset(self):
+        # Lấy tất cả phòng active và annotate số lượng participant chưa out
+        active_rooms = Room.objects.filter(
+            is_active=True
+        ).annotate(
+            participant_count=Count(
+                'participants',
+                filter=Q(
+                    participants__is_out=False,
+                    participants__is_approved=True
+                )
+            )
+        ).filter(
+            participant_count__gt=0  # Lọc bỏ phòng không có người tham gia
+        )
+
+        # Tính trung bình số người tham gia
+        avg_participants = active_rooms.aggregate(
+            avg=Avg('participant_count')
+        )['avg'] or 0
+
+        # Lấy các phòng có số người tham gia >= trung bình
+        trending_rooms = active_rooms.filter(
+            participant_count__gte=avg_participants
+        ).order_by('-participant_count')
+
+        return trending_rooms
 
 
 class UploadCategoryThumbnailView(generics.CreateAPIView):
@@ -178,7 +214,8 @@ class JoinRoomAPIView(APIView):
 
             # Get all admin participants
             admin_participants = list(
-                RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
+                RoomParticipant.objects.filter(
+                    room=room, is_admin=True).select_related('user')
             )
 
             channel_layer = get_channel_layer()
@@ -199,7 +236,7 @@ class JoinRoomAPIView(APIView):
                 status=status.HTTP_202_ACCEPTED)
 
         # If already approved, allow joining
-        if participant.is_approved:
+        if room.type == "PRIVATE" and participant.is_approved:
             participant.save()
             participant_data = RoomParticipantSerializer(participant).data
             channel_layer = get_channel_layer()
@@ -262,7 +299,8 @@ class ApproveJoinRequestAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
-        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        participant_user = RoomParticipant.objects.get(
+            user=user_request, room=room)
         if participant_user is None or not participant_user.is_admin:
             return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -304,7 +342,8 @@ class ApproveJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
+            RoomParticipant.objects.filter(
+                room=room, is_admin=True).select_related('user')
         )
 
         for admin in admin_participants:
@@ -327,7 +366,8 @@ class RejectJoinRequestAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
-        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        participant_user = RoomParticipant.objects.get(
+            user=user_request, room=room)
         if participant_user is None or not participant_user.is_admin:
             return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -368,7 +408,8 @@ class RejectJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
-            RoomParticipant.objects.filter(room=room, is_admin=True).select_related('user')
+            RoomParticipant.objects.filter(
+                room=room, is_admin=True).select_related('user')
         )
 
         for admin in admin_participants:
@@ -391,7 +432,8 @@ class AssignRoomAdminAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
-        participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        participant_user = RoomParticipant.objects.get(
+            user=user_request, room=room)
         if participant_user is None or not participant_user.is_admin:
             return Response({'detail': 'You are not authorized to approve requests!'}, status=status.HTTP_403_FORBIDDEN)
 
