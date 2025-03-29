@@ -118,6 +118,8 @@ urlpatterns = [
          views.JoinRoomAPIView.as_view(), name='join-room'),
     path('api/v1/rooms/<str:code_invite>/leave/',
          views.LeaveRoomAPIView.as_view(), name='leave-room'),
+    path('api/v1/rooms/<str:code_invite>/cancel-join/',
+         views.CancelJoinRoomAPIView.as_view(), name='cancel-join-room'),
     path('api/v1/rooms/<str:code_invite>/approve/<int:user_id>/',
          views.ApproveJoinRequestAPIView.as_view(), name='approve-join-request'),
     path('api/v1/rooms/<str:code_invite>/reject/<int:user_id>/',

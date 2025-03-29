@@ -312,6 +312,53 @@ class JoinRoomAPIView(APIView):
         )
 
 
+class CancelJoinRoomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, code_invite):
+        room = get_object_or_404(Room, code_invite=code_invite)
+        user = request.user
+
+        participant = get_object_or_404(RoomParticipant, room=room, user=user)
+        participant.delete()
+
+        # Get all pending requests with participant data
+        pending_requests = list(
+            RoomParticipant.objects.filter(
+                room=room, is_approved=False
+            ).select_related("user")
+        )
+        request_list = [
+            {
+                "user": UserSerializer(req.user).data,
+                "role": req.role,
+                "is_approved": req.is_approved,
+                "is_out": req.is_out,
+            }
+            for req in pending_requests
+        ]
+
+        admin_participants = list(
+
+            RoomParticipant.objects.filter(room=room)
+            .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
+            .select_related("user")
+
+        )
+
+        channel_layer = get_channel_layer()
+        for admin in admin_participants:
+            admin_user_group = f"user_{admin.user.id}"
+            async_to_sync(channel_layer.group_send)(
+                admin_user_group,
+                {"type": "update_pending_requests", "requests": request_list},
+            )
+
+        return Response(
+            {"message": "Cancelled join request successfully!"}, status=status.HTTP_200_OK
+        )
+
+
 class LeaveRoomAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
