@@ -33,6 +33,11 @@ export const joinRoom = async (roomCode) => {
     return response.data;
 };
 
+export const leaveRoom = async (roomCode) => {
+    const response = await api.post(`/api/v1/rooms/${roomCode}/leave/`);
+    return response.data;
+};
+
 export const approveRequest = async (roomCode, requestId) => {
     const response = await api.post(`/api/v1/rooms/${roomCode}/approve/${requestId}/`);
     return response.data;
@@ -48,4 +53,12 @@ export const assignAdmin = async (roomCode, userId) => {
     return response.data;
 };
 
-// Thêm các API khác nếu cần
+export const revokeAdmin = async (roomCode, userId) => {
+    const response = await api.post(`/api/v1/rooms/${roomCode}/revoke-admin/${userId}/`);
+    return response.data;
+};
+
+export const endRoom = async (roomCode) => {
+    const response = await api.post(`/api/v1/rooms/${roomCode}/end/`);
+    return response.data;
+};

@@ -1,7 +1,7 @@
-import React, {useState, useContext} from "react";
-import {WebSocketContext} from "../context/WebSocketContext";
-import {ChatContext} from "../context/ChatContext";
-import {joinRoom} from "../services/api";
+import React, { useState, useContext } from "react";
+import { WebSocketContext } from "../context/WebSocketContext";
+import { ChatContext } from "../context/ChatContext";
+import { joinRoom, leaveRoom, endRoom } from "../services/api";
 import ChatArea from "./ChatArea";
 import RoomControls from "./RoomControls";
 import UserList from "./UserList";
@@ -11,17 +11,18 @@ const ChatRoom = () => {
     const [roomCode, setRoomCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const {connectChatSocket, disconnectChatSocket} =
+    const { connectChatSocket, disconnectChatSocket } =
         useContext(WebSocketContext);
     const {
         currentRoom,
         setCurrentRoom,
         isConnected,
-        isAdmin,
-        setIsAdmin,
+        role,
+        setRole,
         isPending,
         setIsPending,
     } = useContext(ChatContext);
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
 
     const handleJoinRoom = async (e) => {
         e.preventDefault();
@@ -46,7 +47,7 @@ const ChatRoom = () => {
                 isActive: data.room.is_active,
                 creatorUser: data.room.creator_user,
             });
-            setIsAdmin(data.participant.is_admin);
+            setRole(data.participant.role);
             connectChatSocket(data.room.code_invite);
         } catch (err) {
             setError(err.message || "Failed to join room. Please try again.");
@@ -56,10 +57,56 @@ const ChatRoom = () => {
         }
     };
 
-    const handleLeaveRoom = () => {
-        disconnectChatSocket();
-        setCurrentRoom(null);
+    const handleLeaveRoom = async (shouldEndRoom = false) => {
+        try {
+            if (shouldEndRoom) {
+                await endRoom(currentRoom.code);
+            } else {
+                await leaveRoom(currentRoom.code);
+            }
+            disconnectChatSocket();
+            setCurrentRoom(null);
+            setShowLeaveModal(false);
+        } catch (err) {
+            console.error("Error leaving room:", err);
+            setError(err.message || "Failed to leave room. Please try again.");
+        }
     };
+
+    // Component cho Modal
+    const LeaveRoomModal = () => (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#1a1a1a] p-6 rounded-xl w-full max-w-md shadow-2xl border border-[#2a2a2a]">
+                <h3 className="text-xl font-bold text-gray-200 mb-4">Leave Room</h3>
+                <p className="text-gray-400 mb-6">
+                    As an admin, you can choose to:
+                </p>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={() => handleLeaveRoom(false)}
+                        className="w-full px-4 py-2 bg-[#2a2a2a] text-white rounded-lg 
+                        hover:bg-[#3a3a3a] transition-colors duration-200"
+                    >
+                        Just Leave Room
+                    </button>
+                    <button
+                        onClick={() => handleLeaveRoom(true)}
+                        className="w-full px-4 py-2 bg-red-600 text-white rounded-lg 
+                        hover:bg-red-700 transition-colors duration-200"
+                    >
+                        End Room for Everyone
+                    </button>
+                    <button
+                        onClick={() => setShowLeaveModal(false)}
+                        className="w-full px-4 py-2 bg-[#222222] text-gray-400 rounded-lg 
+                        hover:bg-[#2a2a2a] transition-colors duration-200"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 
     if (!currentRoom || !isConnected) {
         return (
@@ -186,17 +233,23 @@ const ChatRoom = () => {
                         Room: {currentRoom.name} ({currentRoom.type})
                     </h2>
                     <p className="text-sm text-gray-400 mt-1">Code: {currentRoom.code}</p>
-                    {isAdmin && (
-                        <span className="mt-2 inline-block px-2 py-1 bg-green-600 text-white text-xs rounded">
-              Admin
-            </span>
-                    )}
+                    {(role === "ADMIN") && (<span className="mt-2 inline-block px-2 py-1 bg-green-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
+                    {(role === "MODERATOR") && (<span className="mt-2 inline-block px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
+                    {(role === "USER") && (<span className="mt-2 inline-block px-2 py-1 bg-gray-600 text-white text-xs rounded">
+                        {role}
+                    </span>)}
                 </div>
-                <UserList/>
+                <UserList />
                 <div className="mt-auto p-4 border-t border-[#2a2a2a]">
                     <button
-                        onClick={handleLeaveRoom}
-                        className="w-full px-4 py-2 bg-[#2a2a2a] text-white rounded-lg hover:bg-[#3a3a3a] focus:outline-none focus:ring-2 focus:ring-[#3a3a3a] transition-colors duration-200"
+                        onClick={() => role === "ADMIN" ? setShowLeaveModal(true) : handleLeaveRoom(false)}
+                        className="w-full px-4 py-2 bg-[#2a2a2a] text-white rounded-lg 
+                        hover:bg-[#3a3a3a] focus:outline-none focus:ring-2 
+                        focus:ring-[#3a3a3a] transition-colors duration-200"
                     >
                         Leave Room
                     </button>
@@ -206,17 +259,20 @@ const ChatRoom = () => {
             {/* Main Chat Area */}
             <div className="flex-1 flex">
                 <div className="flex-1 flex flex-col bg-[#111111]">
-                    <ChatArea/>
-                    <RoomControls/>
+                    <ChatArea />
+                    <RoomControls />
                 </div>
 
                 {/* Request List - Only show for admin */}
-                {isAdmin && (
+                {(role === "ADMIN" || role === "MODERATOR") && (
                     <div className="w-72 border-l border-[#2a2a2a]">
-                        <RequestList/>
+                        <RequestList />
                     </div>
                 )}
             </div>
+
+            {/* Thêm Modal vào cuối component return */}
+            {showLeaveModal && <LeaveRoomModal />}
         </div>
     );
 };

@@ -1,16 +1,26 @@
-import React, { useContext, useState } from 'react';
-import { ChatContext } from '../context/ChatContext';
-import { UserContext } from '../context/UserContext';
-import { assignAdmin } from '../services/api';
+import React, { useContext, useState } from "react";
+import { ChatContext } from "../context/ChatContext";
+import { UserContext } from "../context/UserContext";
+import { assignAdmin, revokeAdmin } from "../services/api";
+import { WebSocketContext } from "../context/WebSocketContext";
 
 const UserList = () => {
-  const { participants, currentRoom, isAdmin } = useContext(ChatContext);
+  const { participants, currentRoom, role } = useContext(ChatContext);
   const { currentUser } = useContext(UserContext);
+  const { users } = useContext(WebSocketContext);
   const [hoveredUser, setHoveredUser] = useState(null);
 
   const handleAssignAdmin = async (userId) => {
     try {
       await assignAdmin(currentRoom.code, userId);
+    } catch (error) {
+      console.error("Error assigning admin:", error);
+    }
+  };
+
+  const handleRevokeAdmin = async (userId) => {
+    try {
+      await revokeAdmin(currentRoom.code, userId);
     } catch (error) {
       console.error("Error assigning admin:", error);
     }
@@ -31,14 +41,17 @@ const UserList = () => {
             <div
               key={participant.user.id}
               className={`flex items-center space-x-3 p-2 rounded-lg mb-1 
-                ${participant.user.id === currentUser?.id ? 'bg-[#2a2a2a]' : 'hover:bg-[#222222]'}
+                ${participant.user.id === currentUser?.id
+                  ? "bg-[#2a2a2a]"
+                  : "hover:bg-[#222222]"
+                }
                 transition-colors duration-200 relative group`}
               onMouseEnter={() => setHoveredUser(participant.user.id)}
               onMouseLeave={() => setHoveredUser(null)}
             >
               <div className="relative">
                 <img
-                  src={participant.user.avatar || '/default-avatar.png'}
+                  src={participant.user.avatar || "/default-avatar.png"}
                   alt={participant.user.username}
                   className="w-8 h-8 rounded-full object-cover border-2 border-[#2a2a2a]"
                 />
@@ -48,38 +61,56 @@ const UserList = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className={`text-sm font-medium truncate ${
-                    participant.user.id === currentUser?.id ? 'text-gray-200' : 'text-gray-300'
-                  }`}>
+                  <p
+                    className={`text-sm font-medium truncate ${participant.user.id === currentUser?.id
+                      ? "text-gray-200"
+                      : "text-gray-300"
+                      }`}
+                  >
                     {participant.user.username}
                     {participant.user.id === currentUser?.id && (
                       <span className="ml-2 text-xs text-gray-500">(You)</span>
                     )}
-                    {participant.is_admin && (
-                      <span className="ml-2 text-xs text-green-500">(Admin)</span>
+                    {(participant.role === "ADMIN" || participant.role === "MODERATOR") && (
+                      <span className="ml-2 text-xs text-green-500">
+                        {participant.role}
+                      </span>
                     )}
                   </p>
                 </div>
                 {participant.user.is_typing && (
-                  <p className="text-xs text-gray-500">
-                    typing...
-                  </p>
+                  <p className="text-xs text-gray-500">typing...</p>
                 )}
               </div>
 
-              {/* Assign Admin Button */}
-              {isAdmin && 
-               !participant.is_admin && 
-               hoveredUser === participant.user.id && 
-               participant.user.id !== currentUser?.id && (
-                <button
-                  onClick={() => handleAssignAdmin(participant.user.id)}
-                  className="absolute right-2 px-2 py-1 text-xs bg-green-600 text-white rounded
+              {/* Assign Moderator Button */}
+              {role === "ADMIN" &&
+                !(participant.role === "ADMIN" || participant.role === "MODERATOR") &&
+                hoveredUser === participant.user.id &&
+                participant.user.id !== currentUser?.id && (
+                  <button
+                    onClick={() => handleAssignAdmin(participant.user.id)}
+                    className="absolute right-2 px-2 py-1 text-xs bg-green-600 text-white rounded
                     hover:bg-green-700 transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                >
-                  Make Admin
-                </button>
-              )}
+                  >
+                    Make Moderator
+                  </button>
+                )}
+
+              {/* Revoke Admin Button */}
+              {role === "ADMIN" &&
+                (participant.role === "MODERATOR") &&
+                hoveredUser === participant.user.id &&
+                participant.user.id !== currentUser?.id &&
+                participant.user.id !== currentRoom?.creator?.id && (
+                  <button
+                    onClick={() => handleRevokeAdmin(participant.user.id)}
+                    className="absolute right-2 px-2 py-1 text-xs bg-red-600 text-white rounded
+                    hover:bg-red-700 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                  >
+                    Revoke Moderator
+                  </button>
+                )}
             </div>
           );
         })}
@@ -88,4 +119,4 @@ const UserList = () => {
   );
 };
 
-export default UserList; 
+export default UserList;

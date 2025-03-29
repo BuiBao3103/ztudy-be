@@ -5,8 +5,8 @@ import React, {
     useState,
     useCallback,
 } from "react";
-import {UserContext} from "./UserContext";
-import {ChatContext} from "./ChatContext";
+import { UserContext } from "./UserContext";
+import { ChatContext } from "./ChatContext";
 
 export const WebSocketContext = createContext({
     onlineSocket: null,
@@ -23,10 +23,10 @@ export const WebSocketContext = createContext({
     },
 });
 
-export const WebSocketProvider = ({children}) => {
+export const WebSocketProvider = ({ children }) => {
     const [onlineSocket, setOnlineSocket] = useState(null);
     const [chatSocket, setChatSocket] = useState(null);
-    const {currentUser} = useContext(UserContext);
+    const { currentUser } = useContext(UserContext);
     const {
         setMessages,
         setParticipants,
@@ -35,7 +35,7 @@ export const WebSocketProvider = ({children}) => {
         setTypingUsers,
         setIsPending,
         setPendingRequests,
-        setIsAdmin,
+        setRole,
     } = useContext(ChatContext);
 
     const connectChatSocket = (roomCode) => {
@@ -145,12 +145,18 @@ export const WebSocketProvider = ({children}) => {
                 case "participant_list":
                     setParticipants(data.participants);
                     break;
-                
-                case "user_assigned_admin":
-                    setIsAdmin(true);
-                    break;
-                    
 
+                case "user_assigned_moderator":
+                    setRole("MODERATOR");
+                    break;
+
+                case "user_revoked_moderator":
+                    setRole("USER");
+                    break;
+                case "room_ended":
+                    setCurrentRoom(null);
+                    setIsConnected(false);
+                    break;
                 default:
                     console.log("Unhandled message type:", data.type);
             }
