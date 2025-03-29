@@ -24,7 +24,7 @@ from rest_framework import serializers
 
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
-                     Room, RoomParticipant, Interest, StudySession, RoomType)
+                     Room, RoomParticipant, Interest, StudySession, RoomType, Role)
 
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 

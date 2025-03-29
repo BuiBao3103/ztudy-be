@@ -1,38 +1,10 @@
-
-from rest_flex_fields.views import FlexFieldsMixin
-from ..models import (
-    Room,
-    RoomCategory,
-    RoomParticipant,
-    UserActivityLog,
-    User,
-    Role,
-)
-from ..serializers import (
-    RoomSerializer,
-    RoomCategorySerializer,
-    RoomParticipantSerializer,
-    ThumbnailUploadSerializer,
-    UserSerializer,
-    RoomJoinSerializer,
-)
-from .base_views import (
-    BaseListCreateView,
-    BaseRetrieveUpdateDestroyView,
-    SwaggerExpandMixin,
-)
-from ..pagination import CustomPagination
-from ..ml import content_based_filtering, collaborative_filtering
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from channels.layers import get_channel_layer
-
 import imghdr
 
 import cloudinary.uploader
-
+import cloudinary.uploader
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.db.models import Count, Q, Avg
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -40,28 +12,14 @@ from rest_flex_fields.views import FlexFieldsMixin
 from rest_framework import status, generics, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-
-from rest_framework import status, generics, permissions
-import cloudinary.uploader
-import imghdr
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from django.db.models import F, Q
-from django.utils.timezone import now
-
-from ..models import Room, RoomParticipant, User, StudySession
-
 from rest_framework.views import APIView
 
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..ml import content_based_filtering, collaborative_filtering
-from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog
+from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, Role
 from ..pagination import CustomPagination
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
     UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer
-
-from django.db.models import Count, Q, Avg
-
 
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
@@ -247,7 +205,7 @@ class JoinRoomAPIView(APIView):
 
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
-        
+
         # Check if room is active
         if not room.is_active:
             return Response(
@@ -394,7 +352,6 @@ class ApproveJoinRequestAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
         if participant.is_approved:
@@ -468,7 +425,7 @@ class RejectJoinRequestAPIView(APIView):
         user_request = request.user
 
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
-        if participant_user is None or not participant_user.role  in [
+        if participant_user is None or not participant_user.role in [
             Role.ADMIN,
             Role.MODERATOR,
         ]:
@@ -476,7 +433,6 @@ class RejectJoinRequestAPIView(APIView):
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
@@ -556,7 +512,6 @@ class AssignRoomAdminAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
         participant.role = Role.MODERATOR
@@ -621,13 +576,12 @@ class RevokeRoomAdminAPIView(APIView):
         )
 
 
-
 class EndRoomAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, code_invite):
         room = get_object_or_404(Room, code_invite=code_invite)
-        
+
         # Check if user is admin
         participant_user = get_object_or_404(RoomParticipant, user=request.user, room=room)
         if participant_user.role != Role.ADMIN:
@@ -658,4 +612,3 @@ class EndRoomAPIView(APIView):
             {"message": "Room has been ended successfully!"},
             status=status.HTTP_200_OK
         )
-
