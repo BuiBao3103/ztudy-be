@@ -2,41 +2,99 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from dj_rest_auth.registration.views import SocialLoginView
 from django.conf import settings
-from urllib.parse import urljoin
-
-import requests
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.conf import settings
-from django.shortcuts import render
+import requests
+import logging
+from django.shortcuts import redirect
 from django.views import View
+from django.shortcuts import render
+from django.http import HttpRequest
+from rest_framework.request import Request
+from django.middleware.csrf import get_token
+import jwt
+from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from api.serializers import CustomUserDetailsSerializer
+
+logger = logging.getLogger(__name__)
+
 
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
-    callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
     client_class = OAuth2Client
+    callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
 
 
 class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
-        """
-        If you are building a fullstack application (eq. with React app next to Django)
-        you can place this endpoint in your frontend application to receive
-        the JWT tokens there - and store them in the state
-        """
+        try:
+            # 1. Lấy token từ Google
+            code = request.GET.get("code")
+            token_response = self.get_google_token(code)
+            
+            # 2. Lấy email từ id_token
+            id_token = token_response.get('id_token')
+            user_info = jwt.decode(id_token, options={"verify_signature": False})
+            email = user_info['email']
+            
+            # 3. Lấy hoặc tạo user
+            User = get_user_model()
+            user, _ = User.objects.get_or_create(
+                email=email,
+                defaults={'username': email}
+            )
 
-        code = request.GET.get("code")
+            # 4. Tạo JWT token
+            refresh = RefreshToken.for_user(user)
+            
+            # 5. Tạo response với redirect
+            response = redirect(settings.FRONTEND_URL)
 
-        if code is None:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            # 6. Set cookies theo cấu hình
+            response.set_cookie(
+                settings.REST_AUTH['JWT_AUTH_COOKIE'],  # 'access_token'
+                str(refresh.access_token),
+                httponly=settings.REST_AUTH['JWT_AUTH_HTTPONLY'],  # True
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],  # 'Lax'
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],  # False
+                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH'],  # '/'
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']  # None
+            )
+            
+            response.set_cookie(
+                settings.REST_AUTH['JWT_AUTH_REFRESH_COOKIE'],  # 'refresh_token'
+                str(refresh),
+                httponly=settings.REST_AUTH['JWT_AUTH_HTTPONLY'],  # True
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],  # 'Lax'
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],  # False
+                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH'],  # '/'
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']  # None
+            )
 
-        # Remember to replace the localhost:8000 with the actual domain name before deployment
-        token_endpoint_url = urljoin("http://localhost:8000", reverse("google_login"))
-        response = requests.post(url=token_endpoint_url, data={"code": code})
+            return response
 
-        return Response(response.json(), status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception("Error during Google callback")
+            return redirect(f"{settings.FRONTEND_URL}?error=login_failed")
+
+    def get_google_token(self, code):
+        token_url = "https://oauth2.googleapis.com/token"
+        token_payload = {
+            "code": code,
+            "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+            "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
+            "grant_type": "authorization_code"
+        }
+        
+        token_response = requests.post(token_url, data=token_payload)
+        
+        if token_response.status_code != 200:
+            raise Exception(f"Failed to get token: {token_response.text}")
+            
+        return token_response.json()
 
 
 class LoginPage(View):

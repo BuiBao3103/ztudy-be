@@ -1,18 +1,23 @@
-from django.db.models.functions import TruncDate
-from django.utils.timezone import now, timedelta
-from django.db.models import Sum
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from ..models import StudySession, User
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework.views import APIView
-from rest_framework.response import Response
-import redis
+import logging
 import time
 
+import redis
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from django.utils.timezone import now, timedelta
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from ..models import StudySession, User, MonthlyLevel
 from ..pagination import CustomPagination
 from ..serializers import LeaderboardUserSerializer
+
+# Thiết lập logging
+logger = logging.getLogger(__name__)
 
 
 class StudyTimeStatsView(APIView):
@@ -24,6 +29,7 @@ class StudyTimeStatsView(APIView):
         week_start = today - timedelta(days=today.weekday())
         month_start = today.replace(day=1)
 
+        # Lấy study time
         daily_study = StudySession.objects.filter(user=user, date=today).aggregate(
             total=Sum('total_time')
         )['total'] or 0
@@ -36,13 +42,49 @@ class StudyTimeStatsView(APIView):
             total=Sum('total_time')
         )['total'] or 0
 
-        all_time = StudySession.objects.filter(user=user).aggregate(total=Sum('total_time'))['total'] or 0
+        # Lấy rank từ Redis
+        today_rank = "unranked"
+        week_rank = "unranked"
+        month_rank = "unranked"
+
+        # Kiểm tra rank today
+        if redis_client.exists('leaderboard:today:zset'):
+            today_rank_pos = redis_client.zrevrank(
+                'leaderboard:today:zset', user.id)
+            if today_rank_pos is not None:
+                today_rank = today_rank_pos + 1
+
+        # Kiểm tra rank week
+        if redis_client.exists('leaderboard:week:zset'):
+            week_rank_pos = redis_client.zrevrank(
+                'leaderboard:week:zset', user.id)
+            if week_rank_pos is not None:
+                week_rank = week_rank_pos + 1
+
+        # Kiểm tra rank month
+        if redis_client.exists('leaderboard:month:zset'):
+            month_rank_pos = redis_client.zrevrank(
+                'leaderboard:month:zset', user.id)
+            if month_rank_pos is not None:
+                month_rank = month_rank_pos + 1
 
         return Response({
-            "daily_study": round(daily_study, 2),
-            "weekly_study": round(weekly_study, 2),
-            "monthly_study": round(monthly_study, 2),
-            "all_time": round(all_time, 2)
+            "study": {
+                "today": round(daily_study, 1),
+                "week": round(weekly_study, 1),
+                "month": round(monthly_study, 1)
+            },
+            "rank": {
+                "today": today_rank,
+                "week": week_rank,
+                "month": month_rank
+            },
+            "current_monthly_level": {
+                "level": MonthlyLevel.get_role_from_time(monthly_study),
+                "next_level": MonthlyLevel.next_level(MonthlyLevel.get_role_from_time(float(monthly_study))),
+                "progress": round(MonthlyLevel.progress(MonthlyLevel.get_role_from_time(monthly_study), monthly_study), 1),
+                "time_to_next_level": round(MonthlyLevel.time_to_next_level(MonthlyLevel.get_role_from_time(monthly_study), monthly_study), 1)
+            }
         })
 
 
@@ -65,39 +107,33 @@ class StudyTimeChartView(APIView):
         if filter_type == "today":
             date_range = [today]
         elif filter_type == "this_week":
-            date_range = [week_start + timedelta(days=i) for i in range((today - week_start).days + 1)]
+            date_range = [
+                week_start + timedelta(days=i) for i in range((today - week_start).days + 1)]
         elif filter_type == "this_month":
-            date_range = [month_start + timedelta(days=i) for i in range((today - month_start).days + 1)]
+            date_range = [
+                month_start + timedelta(days=i) for i in range((today - month_start).days + 1)]
         else:
             return Response({"error": "Invalid filter type"}, status=400)
 
         study_data = (
-            StudySession.objects.filter(user=user, date__gte=date_range[0], date__lte=today)
+            StudySession.objects.filter(
+                user=user, date__gte=date_range[0], date__lte=today)
             .annotate(study_date=TruncDate("date"))
             .values("study_date")
             .annotate(total_study=Sum("total_time"))
         )
 
-        study_dict = {item["study_date"].strftime("%Y-%m-%d"): round(item["total_study"], 2) for item in study_data}
+        study_dict = {item["study_date"].strftime(
+            "%Y-%m-%d"): round(item["total_study"], 2) for item in study_data}
 
         response_data = [
-            {"date": date.strftime("%Y-%m-%d"), "total_study": study_dict.get(date.strftime("%Y-%m-%d"), 0)}
+            {"date": date.strftime(
+                "%Y-%m-%d"), "total_study": study_dict.get(date.strftime("%Y-%m-%d"), 0)}
             for date in date_range
         ]
 
         return Response({"data": response_data})
 
-
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
-
-import time
-import logging
-from rest_framework import generics, status
-from rest_framework.response import Response
-import redis
-
-# Thiết lập logging
-logger = logging.getLogger(__name__)
 
 # Kết nối Redis
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
@@ -133,18 +169,30 @@ class LeaderboardView(generics.ListAPIView):
         if is_updating:
             logger.info(f"Leaderboard {period} is being updated")
             return Response({
-                "message": "Leaderboard is being updated, please try again in a few seconds",
-                "next_update_timestamp": next_update_timestamp,
-                "seconds_until_next_update": 0
+                'leaderboard': {
+                    'page': 1,
+                    'totalPages': 1,
+                    'totalItems': 0,
+                    'results': []
+                },
+                'message': "Leaderboard is being updated, please try again in a few seconds",
+                'next_update_timestamp': next_update_timestamp,
+                'seconds_until_next_update': 0
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Nếu ZSET không tồn tại
         if not zset_exists:
             logger.warning(f"Leaderboard {period} ZSET does not exist")
             return Response({
-                "message": "Leaderboard is being prepared or not ready, please try again shortly",
-                "next_update_timestamp": next_update_timestamp,
-                "seconds_until_next_update": int(time_until_next_update)
+                'leaderboard': {
+                    'page': 1,
+                    'totalPages': 1,
+                    'totalItems': 0,
+                    'results': []
+                },
+                'message': "Leaderboard is being prepared or not ready, please try again shortly",
+                'next_update_timestamp': next_update_timestamp,
+                'seconds_until_next_update': int(time_until_next_update)
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         # Lấy dữ liệu từ Redis
@@ -161,28 +209,29 @@ class LeaderboardView(generics.ListAPIView):
         start_idx = (page_number - 1) * page_size
         end_idx = start_idx + page_size - 1
 
-        leaderboard_tuples = redis_client.zrevrange(zset_key, start_idx, end_idx, withscores=True)
+        leaderboard_tuples = redis_client.zrevrange(
+            zset_key, start_idx, end_idx, withscores=True)
         if not leaderboard_tuples:
             return Response({
-                "leaderboard": {
-                    "count": total_users,
-                    "next": None,
-                    "previous": None,
-                    "results": []
+                'leaderboard': {
+                    'page': page_number,
+                    'totalPages': 1,
+                    'totalItems': total_users,
+                    'results': []
                 },
-                "next_update_timestamp": next_update_timestamp,
-                "seconds_until_next_update": int(time_until_next_update)
+                'next_update_timestamp': next_update_timestamp,
+                'seconds_until_next_update': int(time_until_next_update)
             })
 
-        # Chuẩn bị dữ liệu user
         user_ids = []
         user_data_map = {}
         for i, (user_id, score) in enumerate(leaderboard_tuples):
-            user_id_int = int(user_id.decode() if isinstance(user_id, bytes) else user_id)
+            user_id_int = int(user_id.decode() if isinstance(
+                user_id, bytes) else user_id)
             user_ids.append(user_id_int)
             user_data_map[user_id_int] = {
                 'rank': start_idx + i + 1,
-                'total_time': round(score / 10, 1)  # Chuyển từ scaled score về thời gian gốc
+                'total_time': round(score / 10, 1)
             }
 
         users = User.objects.filter(id__in=user_ids)
@@ -200,19 +249,15 @@ class LeaderboardView(generics.ListAPIView):
 
         user_data_list.sort(key=lambda x: x['rank'])
 
-        # Tạo thông tin phân trang
-        base_url = request.build_absolute_uri().split('?')[0]
-        next_page = page_number + 1 if (page_number * page_size) < total_users else None
-        previous_page = page_number - 1 if page_number > 1 else None
-
+        # Response cuối cùng
         response_data = {
-            "leaderboard": {
-                "count": total_users,
-                "next": f"{base_url}?page={next_page}" if next_page else None,
-                "previous": f"{base_url}?page={previous_page}" if previous_page else None,
-                "results": user_data_list
+            'leaderboard': {
+                'page': page_number,
+                'totalPages': (total_users + page_size - 1) // page_size,
+                'totalItems': total_users,
+                'results': user_data_list
             },
-            "next_update_timestamp": next_update_timestamp,
-            "seconds_until_next_update": int(time_until_next_update)
+            'next_update_timestamp': next_update_timestamp,
+            'seconds_until_next_update': int(time_until_next_update)
         }
         return Response(response_data)

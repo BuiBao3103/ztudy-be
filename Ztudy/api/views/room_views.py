@@ -1,3 +1,4 @@
+
 from rest_flex_fields.views import FlexFieldsMixin
 from ..models import (
     Room,
@@ -25,9 +26,21 @@ from ..ml import content_based_filtering, collaborative_filtering
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from channels.layers import get_channel_layer
+
+import imghdr
+
+import cloudinary.uploader
+
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_flex_fields.views import FlexFieldsMixin
+from rest_framework import status, generics, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+
 from rest_framework import status, generics, permissions
 import cloudinary.uploader
 import imghdr
@@ -37,6 +50,18 @@ from django.db.models import F, Q
 from django.utils.timezone import now
 
 from ..models import Room, RoomParticipant, User, StudySession
+
+from rest_framework.views import APIView
+
+from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
+from ..ml import content_based_filtering, collaborative_filtering
+from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog
+from ..pagination import CustomPagination
+from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
+    UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer
+
+from django.db.models import Count, Q, Avg
+
 
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
@@ -52,6 +77,73 @@ class RoomRetrieveUpdateDestroy(
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
     permit_list_expands = ["category", "creator_user"]
+
+
+class RoomTrendingList(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAPIView):
+    serializer_class = RoomSerializer
+    pagination_class = CustomPagination
+    permit_list_expands = ['category', 'creator_user']
+
+    def get_queryset(self):
+        # Lấy tất cả phòng active và annotate số lượng participant chưa out
+        active_rooms = Room.objects.filter(
+            is_active=True
+        ).annotate(
+            participant_count=Count(
+                'participants',
+                filter=Q(
+                    participants__is_out=False,
+                    participants__is_approved=True
+                )
+            )
+        ).filter(
+            participant_count__gt=0  # Lọc bỏ phòng không có người tham gia
+        )
+
+        # Tính trung bình số người tham gia
+        avg_participants = active_rooms.aggregate(
+            avg=Avg('participant_count')
+        )['avg'] or 0
+
+        # Lấy các phòng có số người tham gia >= trung bình
+        trending_rooms = active_rooms.filter(
+            participant_count__gte=avg_participants
+        ).order_by('-participant_count')
+
+        return trending_rooms
+
+
+class UploadCategoryThumbnailView(generics.CreateAPIView):
+    queryset = RoomCategory.objects.all()
+    parser_classes = (MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        request_body=CategoryThumbnailUploadSerializer,
+        responses={201: openapi.Response(
+            'Thumbnail uploaded successfully', CategoryThumbnailUploadSerializer)},
+        operation_description="Upload an thumbnail image to Cloudinary",
+    )
+    def post(self, request, *args, **kwargs):
+        category = get_object_or_404(RoomCategory, id=kwargs['pk'])
+        file = request.FILES.get('thumbnail')
+
+        if not file:
+            return Response({'detail': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not imghdr.what(file):
+            return Response({'detail': 'Invalid image format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="ztudy/category_thumbnails/",
+            public_id=f"category_{category.id}_thumbnail",
+            overwrite=True
+        )
+
+        category.thumbnail = upload_result['secure_url']
+        category.save()
+
+        return Response({'thumbnail': category.thumbnail}, status=status.HTTP_201_CREATED)
 
 
 class UploadThumbnailView(generics.CreateAPIView):
@@ -193,9 +285,11 @@ class JoinRoomAPIView(APIView):
 
             # Get all admin participants
             admin_participants = list(
+
                 RoomParticipant.objects.filter(room=room)
                 .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
                 .select_related("user")
+
             )
 
             channel_layer = get_channel_layer()
@@ -216,7 +310,7 @@ class JoinRoomAPIView(APIView):
             )
 
         # If already approved, allow joining
-        if participant.is_approved:
+        if room.type == "PRIVATE" and participant.is_approved:
             participant.save()
             participant_data = RoomParticipantSerializer(participant).data
             channel_layer = get_channel_layer()
@@ -289,6 +383,7 @@ class ApproveJoinRequestAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
+
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
         if participant_user is None or not participant_user.role in [
             Role.ADMIN,
@@ -298,6 +393,7 @@ class ApproveJoinRequestAPIView(APIView):
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
@@ -343,9 +439,11 @@ class ApproveJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
+
             RoomParticipant.objects.filter(room=room)
             .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
             .select_related("user")
+
         )
 
         for admin in admin_participants:
@@ -368,6 +466,7 @@ class RejectJoinRequestAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
+
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
         if participant_user is None or not participant_user.role  in [
             Role.ADMIN,
@@ -377,6 +476,7 @@ class RejectJoinRequestAPIView(APIView):
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
@@ -421,9 +521,11 @@ class RejectJoinRequestAPIView(APIView):
 
         # Get all admin participants
         admin_participants = list(
+
             RoomParticipant.objects.filter(room=room)
             .filter(Q(role=Role.ADMIN) | Q(role=Role.MODERATOR))
             .select_related("user")
+
         )
 
         for admin in admin_participants:
@@ -446,12 +548,14 @@ class AssignRoomAdminAPIView(APIView):
         room = get_object_or_404(Room, code_invite=code_invite)
 
         user_request = request.user
+
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
         if participant_user is None or participant_user.role != Role.ADMIN:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
 
@@ -517,6 +621,7 @@ class RevokeRoomAdminAPIView(APIView):
         )
 
 
+
 class EndRoomAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -553,3 +658,4 @@ class EndRoomAPIView(APIView):
             {"message": "Room has been ended successfully!"},
             status=status.HTTP_200_OK
         )
+

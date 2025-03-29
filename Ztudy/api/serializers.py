@@ -21,20 +21,11 @@ from django.utils.http import urlsafe_base64_encode
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 
-from .models import (
-    BackgroundVideoType,
-    BackgroundVideo,
-    SessionGoal,
-    User,
-    MotivationalQuote,
-    Sound,
-    RoomCategory,
-    Room,
-    RoomParticipant,
-    Interest,
-    StudySession,
-    Role,
-)
+
+from .models import (BackgroundVideoType, BackgroundVideo,
+                     SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
+                     Room, RoomParticipant, Interest, StudySession, RoomType)
+
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 
 User = get_user_model()
@@ -151,7 +142,8 @@ class SoundSerializer(serializers.ModelSerializer):
 class RoomCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RoomCategory
-        fields = "__all__"
+        exclude = ['thumbnail']
+
 
     def create(self, validated_data):
         if "name" in validated_data:
@@ -177,6 +169,9 @@ class RoomSerializer(FlexFieldsModelSerializer):
         if "code_invite" not in validated_data or not validated_data["code_invite"]:
             validated_data["code_invite"] = generate_unique_code(Room, "code_invite", 6)
 
+        if validated_data['type'] == RoomType.PUBLIC:
+            category = RoomCategory.objects.get(id=validated_data['category'].id)
+            validated_data['thumbnail'] = category.thumbnail
         room = super().create(validated_data)
 
         if room.creator_user:
@@ -212,6 +207,8 @@ class RoomJoinSerializer(serializers.ModelSerializer):
 class ThumbnailUploadSerializer(serializers.Serializer):
     thumbnail = serializers.ImageField()
 
+class CategoryThumbnailUploadSerializer(serializers.Serializer):
+    thumbnail = serializers.ImageField()
 
 class RoomParticipantSerializer(FlexFieldsModelSerializer):
     class Meta:
@@ -267,19 +264,20 @@ class LeaderboardUserSerializer(serializers.ModelSerializer):
 
 class CustomUserDetailsSerializer(UserDetailsSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
+    
+    def validate_username(self, value):
+        # Skip username uniqueness validation
+        return value
 
     class Meta:
-        model = User
-        exclude = [
-            "password",
-            "deleted_at",
-            "restored_at",
-            "transaction_id",
-            "is_superuser",
-            "is_staff",
-            "groups",
-            "user_permissions",
-        ]
+        model = get_user_model()
+        exclude = ['password', 'deleted_at', 'restored_at', 'transaction_id', 'is_superuser', 'is_staff', 'groups',
+                   'user_permissions']
+        read_only_fields = ['email']
+        extra_kwargs = {
+            'username': {'validators': []}
+        }
+
 
 
 class CustomRegisterSerializer(RegisterSerializer):

@@ -20,22 +20,12 @@ from .background_video_views import (
 )
 from .session_goal_views import SessionGoalListCreate, SessionGoalRetrieveUpdateDestroy
 from .sound_views import SoundList, SoundUpload, SoundDetail, StreamAudioView
-from .room_views import (
-    RoomListCreate,
-    RoomRetrieveUpdateDestroy,
-    UploadThumbnailView,
-    RoomCategoryListCreate,
-    RoomCategoryRetrieveUpdateDestroy,
-    RoomParticipantListCreate,
-    RoomParticipantRetrieveUpdateDestroy,
-    SuggestedRoomsAPIView,
-    JoinRoomAPIView,
-    LeaveRoomAPIView,
-    ApproveJoinRequestAPIView,
-    RejectJoinRequestAPIView,
-    AssignRoomAdminAPIView,
-    RevokeRoomAdminAPIView,
-    EndRoomAPIView,
-)
+
+from .room_views import (RoomListCreate, RoomRetrieveUpdateDestroy, RoomTrendingList, UploadThumbnailView,
+                         RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy, UploadCategoryThumbnailView,
+                         RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy,
+                         SuggestedRoomsAPIView, JoinRoomAPIView, LeaveRoomAPIView,EndRoomAPIView,
+                         ApproveJoinRequestAPIView, RejectJoinRequestAPIView, AssignRoomAdminAPIView)
+
 from .stats_views import StudyTimeStatsView, StudyTimeChartView, LeaderboardView
 from .views import chat_room

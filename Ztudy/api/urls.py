@@ -1,10 +1,10 @@
 from allauth.account.views import ConfirmEmailView
 from django.urls import path, include, re_path
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
 
 from . import views
 from .admin import admin
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -97,80 +97,43 @@ urlpatterns = [
         name="session-goal-view-detail",
     ),
     # Sound URLs
-    path("api/v1/sounds/", views.SoundList.as_view(), name="sound-view"),
-    path(
-        "api/v1/sounds/<int:pk>/", views.SoundDetail.as_view(), name="sound-view-detail"
-    ),
-    path("api/v1/sounds/upload/", views.SoundUpload.as_view(), name="sound-upload"),
-    path(
-        "api/v1/sounds/<int:pk>/stream/",
-        views.StreamAudioView.as_view(),
-        name="stream-audio",
-    ),
+    path('api/v1/sounds/', views.SoundList.as_view(), name='sound-view'),
+    path('api/v1/sounds/<int:pk>/',
+         views.SoundDetail.as_view(), name='sound-view-detail'),
+    path('api/v1/sounds/upload/', views.SoundUpload.as_view(), name='sound-upload'),
+    path('api/v1/sounds/<int:pk>/stream/',
+         views.StreamAudioView.as_view(), name='stream-audio'),
+
     # Room URLs
-    path("api/v1/rooms/", views.RoomListCreate.as_view(), name="room-view-create"),
-    path(
-        "api/v1/rooms/<int:pk>/upload-thumbnail/",
-        views.UploadThumbnailView.as_view(),
-        name="upload-thumbnail",
-    ),
-    path(
-        "api/v1/rooms/<int:pk>/",
-        views.RoomRetrieveUpdateDestroy.as_view(),
-        name="room-view-detail",
-    ),
-    path(
-        "api/v1/rooms/suggested/",
-        views.SuggestedRoomsAPIView.as_view(),
-        name="suggested-rooms",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/join/",
-        views.JoinRoomAPIView.as_view(),
-        name="join-room",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/leave/",
-        views.LeaveRoomAPIView.as_view(),
-        name="leave-room",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/approve/<int:user_id>/",
-        views.ApproveJoinRequestAPIView.as_view(),
-        name="approve-join-request",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/reject/<int:user_id>/",
-        views.RejectJoinRequestAPIView.as_view(),
-        name="reject-join-request",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/assign-admin/<int:user_id>/",
-        views.AssignRoomAdminAPIView.as_view(),
-        name="assign-room-admin",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/revoke-admin/<int:user_id>/",
-        views.RevokeRoomAdminAPIView.as_view(),
-        name="revoke-room-admin",
-    ),
-    path(
-        "api/v1/rooms/<str:code_invite>/end/",
-        views.EndRoomAPIView.as_view(),
-        name="end-room",
-    ),
+    path('api/v1/rooms/', views.RoomListCreate.as_view(), name='room-view-create'),
+    path('api/v1/rooms/<int:pk>/upload-thumbnail/',
+         views.UploadThumbnailView.as_view(), name='upload-thumbnail'),
+    path('api/v1/rooms/<int:pk>/',
+         views.RoomRetrieveUpdateDestroy.as_view(), name='room-view-detail'),
+    path('api/v1/rooms/suggested/',
+         views.SuggestedRoomsAPIView.as_view(), name='suggested-rooms'),
+    path('api/v1/rooms/trending/',
+         views.RoomTrendingList.as_view(), name='trending-rooms'),
+    path('api/v1/rooms/<str:code_invite>/join/',
+         views.JoinRoomAPIView.as_view(), name='join-room'),
+    path('api/v1/rooms/<str:code_invite>/leave/',
+         views.LeaveRoomAPIView.as_view(), name='leave-room'),
+    path('api/v1/rooms/<str:code_invite>/approve/<int:user_id>/',
+         views.ApproveJoinRequestAPIView.as_view(), name='approve-join-request'),
+    path('api/v1/rooms/<str:code_invite>/reject/<int:user_id>/',
+         views.RejectJoinRequestAPIView.as_view(), name='reject-join-request'),
+    path('api/v1/rooms/<str:code_invite>/assign-admin/<int:user_id>/',
+         views.AssignRoomAdminAPIView.as_view(), name='assign-room-admin'),
 
     # Room Category URLs
-    path(
-        "api/v1/room-categories/",
-        views.RoomCategoryListCreate.as_view(),
-        name="room-category-view-create",
-    ),
-    path(
-        "api/v1/room-categories/<int:pk>/",
-        views.RoomCategoryRetrieveUpdateDestroy.as_view(),
-        name="room-category-view-detail",
-    ),
+    path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(),
+         name='room-category-view-create'),
+    path('api/v1/room-categories/<int:pk>/', views.RoomCategoryRetrieveUpdateDestroy.as_view(),
+         name='room-category-view-detail'),
+    path("api/v1/room-categories/<int:pk>/upload-thumbnail/", views.UploadCategoryThumbnailView.as_view(),
+         name="upload-category-thumbnail"),
+
+
     # Room Participant URLs
     path(
         "api/v1/room-participants/",

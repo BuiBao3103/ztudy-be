@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from celery.schedules import crontab
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -40,9 +41,9 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React local
-    # "https://your-frontend-domain.com",  # React đã deploy
-]
+    "http://localhost:3000",  
+    
+] + os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
@@ -208,7 +209,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
 
 ACCOUNT_LOGIN_METHODS = {"email"}  # Use Email / Password authentication
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"  # optional | mandatory | none
@@ -232,6 +232,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_CALLBACK_URL = os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
+BASE_URL = os.getenv("BASE_URL")
 # django-allauth (social)
 # Authenticate if local account with this email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -279,7 +280,6 @@ USE_TZ = False
 
 # settings.py
 LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
-
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
@@ -288,6 +288,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
         # Expires before next run
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
+    },
+    'reset_monthly_study_time': {
+        'task': 'api.tasks.reset_monthly_study_time',
+        'schedule': crontab(minute=0, hour=0, day_of_month=1)
     },
 }
 
