@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..ml import content_based_filtering, collaborative_filtering
-from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, Role
+from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, Role, RoomType
 from ..pagination import CustomPagination
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
     UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer
@@ -309,6 +309,35 @@ class JoinRoomAPIView(APIView):
         return Response(
             {"message": "You are still waiting for approval"},
             status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class JoinRandomRoomAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        room = Room.objects.filter(is_active=True, type=RoomType.PUBLIC).order_by("?").first()
+        room_data = RoomJoinSerializer(room).data
+        participant, created = RoomParticipant.objects.get_or_create(
+            room=room, user=user, is_approved=True
+        )
+
+        participant.save()
+        participant_data = RoomParticipantSerializer(participant).data
+        channel_layer = get_channel_layer()
+        user_data = UserSerializer(user).data
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{room.id}", {"type": "user_joined", "user": user_data}
+        )
+
+        return Response(
+            {
+                "message": "Joined room successfully!",
+                "room": room_data,
+                "participant": participant_data,
+            },
+            status=status.HTTP_200_OK,
         )
 
 

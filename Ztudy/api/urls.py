@@ -116,6 +116,8 @@ urlpatterns = [
          views.RoomTrendingList.as_view(), name='trending-rooms'),
     path('api/v1/rooms/<str:code_invite>/join/',
          views.JoinRoomAPIView.as_view(), name='join-room'),
+    path('api/v1/rooms/join-random/',
+         views.JoinRandomRoomAPIView.as_view(), name='join-random-room'),
     path('api/v1/rooms/<str:code_invite>/leave/',
          views.LeaveRoomAPIView.as_view(), name='leave-room'),
     path('api/v1/rooms/<str:code_invite>/cancel-join/',
