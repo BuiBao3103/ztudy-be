@@ -318,6 +318,11 @@ class JoinRandomRoomAPIView(APIView):
     def post(self, request):
         user = request.user
         room = Room.objects.filter(is_active=True, type=RoomType.PUBLIC).order_by("?").first()
+        if room is None:
+            return Response(
+                {"detail": "No active rooms available!"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         room_data = RoomJoinSerializer(room).data
         participant, created = RoomParticipant.objects.get_or_create(
             room=room, user=user, is_approved=True
