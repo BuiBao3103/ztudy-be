@@ -211,6 +211,7 @@ SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {"email"}  # Use Email / Password authentication
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_VERIFICATION = "none"  # optional | mandatory | none
 # No need to sent POST request to confirmation link
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
