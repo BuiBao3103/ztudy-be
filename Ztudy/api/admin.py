@@ -31,6 +31,8 @@ class RoomAdmin(admin.ModelAdmin):
     list_filter = ("type", "is_active", "category")
     search_fields = ("name", "creator_user__username", "code_invite")
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_name(self, obj):
         return decode_emoji(obj.name)
@@ -51,6 +53,8 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("is_online", "monthly_level", "is_staff", "is_active")
     search_fields = ("username", "email")
     readonly_fields = ("created_at", "updated_at", "monthly_study_time")
+    list_per_page = 20
+    date_hierarchy = "date_joined"
 
     def decoded_username(self, obj):
         return decode_emoji(obj.username)
@@ -62,6 +66,8 @@ class RoomCategoryAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_name", "decoded_description")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_name(self, obj):
         return decode_emoji(obj.name)
@@ -86,6 +92,8 @@ class RoomParticipantAdmin(admin.ModelAdmin):
     )
     list_filter = ("role", "is_out", "is_approved")
     search_fields = ("room__name", "user__username")
+    list_per_page = 20
+    date_hierarchy = "joined_at"
 
     def decoded_room(self, obj):
         return decode_emoji(obj.room.name)
@@ -103,6 +111,8 @@ class BackgroundVideoAdmin(admin.ModelAdmin):
     list_filter = ("type",)
     search_fields = ("youtube_url",)
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_type(self, obj):
         return decode_emoji(obj.type.name)
@@ -114,6 +124,8 @@ class BackgroundVideoTypeAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_name", "decoded_description")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_name(self, obj):
         return decode_emoji(obj.name)
@@ -131,6 +143,8 @@ class SessionGoalAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("goal", "user__username")
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_goal(self, obj):
         return decode_emoji(obj.goal)
@@ -147,6 +161,8 @@ class MotivationalQuoteAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_quote", "decoded_author")
     search_fields = ("quote", "author")
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_quote(self, obj):
         return decode_emoji(obj.quote)
@@ -163,6 +179,8 @@ class SoundAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_name")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_name(self, obj):
         return decode_emoji(obj.name)
@@ -174,6 +192,8 @@ class InterestAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_user", "decoded_category", "created_at")
     list_filter = ("category",)
     search_fields = ("user__username", "category__name")
+    list_per_page = 20
+    date_hierarchy = "created_at"
 
     def decoded_user(self, obj):
         return decode_emoji(obj.user.username)
@@ -198,6 +218,8 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     list_filter = ("room",)
     search_fields = ("user__username", "room__name")
     readonly_fields = ("joined_at", "left_at")
+    list_per_page = 20
+    date_hierarchy = "joined_at"
 
     def decoded_user(self, obj):
         return decode_emoji(obj.user.username)
@@ -214,6 +236,8 @@ class StudySessionAdmin(admin.ModelAdmin):
     list_display = ("id", "decoded_user", "date", "total_time")
     list_filter = ("date",)
     search_fields = ("user__username",)
+    list_per_page = 20
+    date_hierarchy = "date"
 
     def decoded_user(self, obj):
         return decode_emoji(obj.user.username)
