@@ -1,7 +1,236 @@
 from django.contrib import admin
 from django.apps import apps
+from django.utils.html import format_html
+from .models import (
+    Room,
+    User,
+    RoomCategory,
+    RoomParticipant,
+    BackgroundVideo,
+    BackgroundVideoType,
+    SessionGoal,
+    MotivationalQuote,
+    Sound,
+    Interest,
+    UserActivityLog,
+    StudySession,
+)
+from .utils import decode_emoji
 
-app = apps.get_app_config('api')
 
-for model_name, model in app.models.items():
-    admin.site.register(model)
+class RoomAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "decoded_name",
+        "type",
+        "creator_user",
+        "category",
+        "max_participants",
+        "is_active",
+    )
+    list_filter = ("type", "is_active", "category")
+    search_fields = ("name", "creator_user__username", "code_invite")
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_name(self, obj):
+        return decode_emoji(obj.name)
+
+    decoded_name.short_description = "Name"
+
+
+class UserAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "decoded_username",
+        "email",
+        "is_online",
+        "monthly_level",
+        "is_staff",
+        "is_active",
+    )
+    list_filter = ("is_online", "monthly_level", "is_staff", "is_active")
+    search_fields = ("username", "email")
+    readonly_fields = ("created_at", "updated_at", "monthly_study_time")
+
+    def decoded_username(self, obj):
+        return decode_emoji(obj.username)
+
+    decoded_username.short_description = "Username"
+
+
+class RoomCategoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_name", "decoded_description")
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_name(self, obj):
+        return decode_emoji(obj.name)
+
+    decoded_name.short_description = "Name"
+
+    def decoded_description(self, obj):
+        return decode_emoji(obj.description) if obj.description else None
+
+    decoded_description.short_description = "Description"
+
+
+class RoomParticipantAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "decoded_room",
+        "decoded_user",
+        "role",
+        "is_out",
+        "is_approved",
+        "joined_at",
+    )
+    list_filter = ("role", "is_out", "is_approved")
+    search_fields = ("room__name", "user__username")
+
+    def decoded_room(self, obj):
+        return decode_emoji(obj.room.name)
+
+    decoded_room.short_description = "Room"
+
+    def decoded_user(self, obj):
+        return decode_emoji(obj.user.username)
+
+    decoded_user.short_description = "User"
+
+
+class BackgroundVideoAdmin(admin.ModelAdmin):
+    list_display = ("id", "youtube_url", "decoded_type")
+    list_filter = ("type",)
+    search_fields = ("youtube_url",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_type(self, obj):
+        return decode_emoji(obj.type.name)
+
+    decoded_type.short_description = "Type"
+
+
+class BackgroundVideoTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_name", "decoded_description")
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_name(self, obj):
+        return decode_emoji(obj.name)
+
+    decoded_name.short_description = "Name"
+
+    def decoded_description(self, obj):
+        return decode_emoji(obj.description) if obj.description else None
+
+    decoded_description.short_description = "Description"
+
+
+class SessionGoalAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_goal", "status", "decoded_user")
+    list_filter = ("status",)
+    search_fields = ("goal", "user__username")
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_goal(self, obj):
+        return decode_emoji(obj.goal)
+
+    decoded_goal.short_description = "Goal"
+
+    def decoded_user(self, obj):
+        return decode_emoji(obj.user.username)
+
+    decoded_user.short_description = "User"
+
+
+class MotivationalQuoteAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_quote", "decoded_author")
+    search_fields = ("quote", "author")
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_quote(self, obj):
+        return decode_emoji(obj.quote)
+
+    decoded_quote.short_description = "Quote"
+
+    def decoded_author(self, obj):
+        return decode_emoji(obj.author)
+
+    decoded_author.short_description = "Author"
+
+
+class SoundAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_name")
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def decoded_name(self, obj):
+        return decode_emoji(obj.name)
+
+    decoded_name.short_description = "Name"
+
+
+class InterestAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_user", "decoded_category", "created_at")
+    list_filter = ("category",)
+    search_fields = ("user__username", "category__name")
+
+    def decoded_user(self, obj):
+        return decode_emoji(obj.user.username)
+
+    decoded_user.short_description = "User"
+
+    def decoded_category(self, obj):
+        return decode_emoji(obj.category.name)
+
+    decoded_category.short_description = "Category"
+
+
+class UserActivityLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "decoded_user",
+        "decoded_room",
+        "joined_at",
+        "left_at",
+        "interaction_count",
+    )
+    list_filter = ("room",)
+    search_fields = ("user__username", "room__name")
+    readonly_fields = ("joined_at", "left_at")
+
+    def decoded_user(self, obj):
+        return decode_emoji(obj.user.username)
+
+    decoded_user.short_description = "User"
+
+    def decoded_room(self, obj):
+        return decode_emoji(obj.room.name)
+
+    decoded_room.short_description = "Room"
+
+
+class StudySessionAdmin(admin.ModelAdmin):
+    list_display = ("id", "decoded_user", "date", "total_time")
+    list_filter = ("date",)
+    search_fields = ("user__username",)
+
+    def decoded_user(self, obj):
+        return decode_emoji(obj.user.username)
+
+    decoded_user.short_description = "User"
+
+
+# Register models with their admin classes
+admin.site.register(Room, RoomAdmin)
+admin.site.register(User, UserAdmin)
+admin.site.register(RoomCategory, RoomCategoryAdmin)
+admin.site.register(RoomParticipant, RoomParticipantAdmin)
+admin.site.register(BackgroundVideo, BackgroundVideoAdmin)
+admin.site.register(BackgroundVideoType, BackgroundVideoTypeAdmin)
+admin.site.register(SessionGoal, SessionGoalAdmin)
+admin.site.register(MotivationalQuote, MotivationalQuoteAdmin)
+admin.site.register(Sound, SoundAdmin)
+admin.site.register(Interest, InterestAdmin)
+admin.site.register(UserActivityLog, UserActivityLogAdmin)
+admin.site.register(StudySession, StudySessionAdmin)
