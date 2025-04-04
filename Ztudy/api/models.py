@@ -3,6 +3,8 @@ from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
 from cloudinary.models import CloudinaryField
 
+from api.utils import decode_emoji
+
 
 class SessionGoalsStatus(models.TextChoices):
     OPEN = "OPEN", "Open"
@@ -78,7 +80,7 @@ class MonthlyLevel(models.TextChoices):
             cls.MASTER,
             cls.GRANDMASTER,
             cls.STUDY_MACHINE,
-            cls.STUDY_MASTER
+            cls.STUDY_MASTER,
         ]
         rank1 = level_ranks.index(level1)
         rank2 = level_ranks.index(level2)
@@ -98,7 +100,7 @@ class MonthlyLevel(models.TextChoices):
             cls.MASTER,
             cls.GRANDMASTER,
             cls.STUDY_MACHINE,
-            cls.STUDY_MASTER
+            cls.STUDY_MASTER,
         ]
         current_index = level_ranks.index(level)
         if current_index < len(level_ranks) - 1:
@@ -160,8 +162,7 @@ class MonthlyLevel(models.TextChoices):
         elif level == cls.STUDY_MASTER:
             return 1
         return 0
-            
-            
+
 
 class BackgroundVideoType(SoftDeleteModel):
     name = models.CharField(max_length=255, unique=True)
@@ -170,7 +171,7 @@ class BackgroundVideoType(SoftDeleteModel):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return decode_emoji(self.name)
 
 
 class BackgroundVideo(models.Model):
@@ -185,7 +186,7 @@ class BackgroundVideo(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Video {self.id} - {self.url}"
+        return f"Video {self.id} - {self.youtube_url} - {self.type.name}"
 
 
 class SessionGoal(models.Model):
@@ -214,15 +215,14 @@ class User(SoftDeleteModel, AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
     monthly_study_time = models.FloatField(default=0)
     monthly_level = models.CharField(
-        max_length=20,
-        choices=MonthlyLevel.choices,
-        default=MonthlyLevel.MEMBER
+        max_length=20, choices=MonthlyLevel.choices, default=MonthlyLevel.MEMBER
     )
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
-    
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
+
     objects = UserManager()
+
     def __str__(self):
         return self.username
 
@@ -244,7 +244,7 @@ class Sound(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return decode_emoji(self.name)
 
 
 class RoomCategory(models.Model):
@@ -252,22 +252,29 @@ class RoomCategory(models.Model):
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
+    thumbnail = CloudinaryField("thumbnail", null=True, blank=True)
 
     def __str__(self):
-        return f"{self.id}_{self.name}"
+        return f"{self.id}_{decode_emoji(self.name)}"
 
 
 class Room(models.Model):
     name = models.CharField(max_length=255)
     type = models.CharField(
-        max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC)
-    thumbnail = CloudinaryField('thumbnail', null=True, blank=True)
-    creator_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rooms_created', null=True,
-                                     blank=True)
+        max_length=7, choices=RoomType.choices, default=RoomType.PUBLIC
+    )
+    thumbnail = CloudinaryField("thumbnail", null=True, blank=True)
+    creator_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="rooms_created",
+        null=True,
+        blank=True,
+    )
     code_invite = models.CharField(max_length=255, null=True, blank=True)
     category = models.ForeignKey(
-        RoomCategory, on_delete=models.SET_NULL, null=True, blank=True)
+        RoomCategory, on_delete=models.SET_NULL, null=True, blank=True
+    )
     max_participants = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -279,9 +286,11 @@ class Room(models.Model):
 
 class RoomParticipant(models.Model):
     room = models.ForeignKey(
-        Room, on_delete=models.CASCADE, related_name='participants')
+        Room, on_delete=models.CASCADE, related_name="participants"
+    )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='rooms_joined')
+        User, on_delete=models.CASCADE, related_name="rooms_joined"
+    )
     joined_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     is_out = models.BooleanField(default=False)
@@ -302,7 +311,7 @@ class Interest(models.Model):
         unique_together = ("user", "category")
 
     def __str__(self):
-        return f"{self.user.id}_{self.user.username} - {self.category.id}_{self.category.name}"
+        return f"{self.user.id}_{self.user.username} - {self.category.id}_{decode_emoji(self.category.name)}"
 
 
 class UserActivityLog(models.Model):
