@@ -17,9 +17,9 @@ from .models import (
 )
 from .utils import decode_emoji
 from django import forms
-from cloudinary.forms import CloudinaryFileField
 import tempfile
 import os
+from cloudinary.models import CloudinaryField
 
 
 class CloudinaryUploadFormMixin(forms.ModelForm):
@@ -58,6 +58,79 @@ class CloudinaryUploadFormMixin(forms.ModelForm):
                 finally:
                     # Clean up the temporary file
                     os.unlink(temp.name)
+
+
+class CloudinaryAdminMixin:
+    def get_cloudinary_fields(self):
+        """Lấy danh sách các trường CloudinaryField của model"""
+        return [
+            field.name for field in self.model._meta.fields 
+            if isinstance(field, CloudinaryField)
+        ]
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Thêm các trường preview và url cho mỗi CloudinaryField"""
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        
+        for field_name in self.get_cloudinary_fields():
+            preview_field = f"{field_name}_preview"
+            url_field = f"{field_name}_url"
+            if preview_field not in readonly_fields:
+                readonly_fields.extend([preview_field, url_field])
+        
+        return readonly_fields
+
+    def get_fieldsets(self, request, obj=None):
+        """Thêm section cho mỗi CloudinaryField"""
+        fieldsets = list(super().get_fieldsets(request, obj))
+        
+        for field_name in self.get_cloudinary_fields():
+            preview_field = f"{field_name}_preview"
+            url_field = f"{field_name}_url"
+            
+            fieldsets.append(
+                (f'{field_name.title()} Information', {
+                    'fields': (field_name, preview_field, url_field),
+                    'classes': ('collapse',),
+                    'description': f'Upload and preview {field_name}'
+                })
+            )
+        
+        return fieldsets
+
+    def _get_preview_method(self, field_name):
+        """Generate preview method for a field"""
+        def preview_method(obj):
+            value = getattr(obj, field_name)
+            if value:
+                return format_html(
+                    '<img src="{}" width="100" height="auto" style="border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" />', 
+                    value
+                )
+            return "No image"
+        preview_method.short_description = f"{field_name.title()} Preview"
+        return preview_method
+
+    def _get_url_method(self, field_name):
+        """Generate URL method for a field"""
+        def url_method(obj):
+            value = getattr(obj, field_name)
+            if value:
+                return format_html('<a href="{}" target="_blank">{}</a>', value, value)
+            return "No URL"
+        url_method.short_description = f"{field_name.title()} URL"
+        return url_method
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Dynamically add preview and URL methods for each CloudinaryField
+        for field_name in self.get_cloudinary_fields():
+            preview_method = self._get_preview_method(field_name)
+            url_method = self._get_url_method(field_name)
+            
+            setattr(self, f'{field_name}_preview', preview_method)
+            setattr(self, f'{field_name}_url', url_method)
 
 
 class BackgroundVideoAdminForm(CloudinaryUploadFormMixin):
@@ -158,7 +231,7 @@ class UserAdminForm(CloudinaryUploadFormMixin):
         return instance
 
 
-class RoomAdmin(admin.ModelAdmin):
+class RoomAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
     form = RoomAdminForm
     list_display = (
         "id",
@@ -168,6 +241,7 @@ class RoomAdmin(admin.ModelAdmin):
         "category",
         "max_participants",
         "is_active",
+        "thumbnail_preview"
     )
     list_filter = ("type", "is_active", "category")
     search_fields = ("name", "creator_user__username", "code_invite")
@@ -181,7 +255,7 @@ class RoomAdmin(admin.ModelAdmin):
     decoded_name.short_description = "Name"
 
 
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
     form = UserAdminForm
     list_display = (
         "id",
@@ -191,6 +265,7 @@ class UserAdmin(admin.ModelAdmin):
         "monthly_level",
         "is_staff",
         "is_active",
+        "avatar_preview"
     )
     list_filter = ("is_online", "monthly_level", "is_staff", "is_active")
     search_fields = ("username", "email")
@@ -204,9 +279,9 @@ class UserAdmin(admin.ModelAdmin):
     decoded_username.short_description = "Username"
 
 
-class RoomCategoryAdmin(admin.ModelAdmin):
+class RoomCategoryAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
     form = RoomCategoryAdminForm
-    list_display = ("id", "decoded_name", "decoded_description")
+    list_display = ("id", "decoded_name", "decoded_description", "thumbnail_preview")
     search_fields = ("name",)
     readonly_fields = ("created_at", "updated_at")
     list_per_page = 20
@@ -249,50 +324,19 @@ class RoomParticipantAdmin(admin.ModelAdmin):
     decoded_user.short_description = "User"
 
 
-class BackgroundVideoAdmin(admin.ModelAdmin):
+class BackgroundVideoAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
     form = BackgroundVideoAdminForm
     list_display = ("id", "youtube_url", "decoded_type", "image_preview")
     list_filter = ("type",)
     search_fields = ("youtube_url",)
-    readonly_fields = ("created_at", "updated_at",
-                       "image_preview", "image_url")
+    readonly_fields = ("created_at", "updated_at")
     list_per_page = 20
     date_hierarchy = "created_at"
-    fieldsets = (
-        (None, {
-            'fields': ('youtube_url', 'type', 'image'),
-            'description': 'Enter the YouTube URL and select a type. You can also upload an image.'
-        }),
-        ('Image Information', {
-            'fields': ('image_preview', 'image_url'),
-            'classes': ('collapse',),
-            'description': 'Image preview and URL information'
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),
-            'description': 'Creation and update timestamps'
-        }),
-    )
 
     def decoded_type(self, obj):
         return decode_emoji(obj.type.name)
 
     decoded_type.short_description = "Type"
-
-    def image_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="100" height="auto" style="border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" />', obj.image)
-        return "No image"
-
-    image_preview.short_description = "Image Preview"
-
-    def image_url(self, obj):
-        if obj.image:
-            return format_html('<a href="{}" tar200="_blank">{}</a>', obj.image, obj.image)
-        return "No image URL"
-
-    image_url.short_description = "Image URL"
 
 
 class BackgroundVideoTypeAdmin(admin.ModelAdmin):
