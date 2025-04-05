@@ -45,7 +45,8 @@ class RoomTrendingList(FlexFieldsMixin, SwaggerExpandMixin, generics.ListAPIView
     def get_queryset(self):
         # Lấy tất cả phòng active và annotate số lượng participant chưa out
         active_rooms = Room.objects.filter(
-            is_active=True
+            is_active=True,
+            type=RoomType.PUBLIC
         ).annotate(
             participant_count=Count(
                 'participants',
