@@ -28,3 +28,4 @@ from .user_views import (
     UploadAvatarView,
 )
 from .views import chat_room
+from .agora_views import AgoraTokenView
