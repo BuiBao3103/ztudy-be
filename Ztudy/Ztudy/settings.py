@@ -326,3 +326,7 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+# Agora credentials
+AGORA_APP_IP = os.getenv("AGORA_APP_IP")
+AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE")
