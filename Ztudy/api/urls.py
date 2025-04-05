@@ -130,6 +130,8 @@ urlpatterns = [
              views.AssignRoomAdminAPIView.as_view(), name='assign-room-admin'),
         path('api/v1/rooms/<str:code_invite>/revoke-admin/<int:user_id>/',
              views.RevokeRoomAdminAPIView.as_view(), name='revoke-room-admin'),
+        path('api/v1/rooms/<str:code_invite>/end/',
+             views.EndRoomAPIView.as_view(), name='end-room'),
 
         # Room Category URLs
         path('api/v1/room-categories/', views.RoomCategoryListCreate.as_view(),
