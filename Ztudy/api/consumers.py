@@ -353,13 +353,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 
 class OnlineStatusConsumer(AsyncWebsocketConsumer):
+    # Dictionary to keep track of active connections per user
+    active_connections = {}
+
     async def connect(self):
         self.user = self.scope["user"]
 
         if self.user.is_authenticated:
-            await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                is_online=True
-            )
+            # Increment active connections counter for this user
+            if self.user.id not in self.active_connections:
+                self.active_connections[self.user.id] = 1
+            else:
+                self.active_connections[self.user.id] += 1
+
+            # Only update is_online if this is the first connection
+            if self.active_connections[self.user.id] == 1:
+                await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                    is_online=True
+                )
 
             self.session_start = now()
             self.is_active = True
@@ -380,10 +391,33 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         print(f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
-            await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                is_online=False
-            )
-            print(f"Updating online status for user {self.user.id} to False")
+            # Decrement active connections counter
+            if self.user.id in self.active_connections:
+                self.active_connections[self.user.id] -= 1
+                print(
+                    f"Active connections for user {self.user.id}: {self.active_connections[self.user.id]}"
+                )
+
+                # Only update is_online if this was the last connection
+                if self.active_connections[self.user.id] <= 0:
+                    await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                        is_online=False
+                    )
+                    print(
+                        f"Updating online status for user {self.user.id} to False - all connections closed"
+                    )
+                    del self.active_connections[self.user.id]
+
+                    # Broadcast user status update to all users
+                    await self.channel_layer.group_send(
+                        "global_online_users",
+                        {
+                            "type": "user_status_update",
+                            "user_id": self.user.id,
+                            "is_online": False,
+                        },
+                    )
+
             self.is_active = False
 
             if hasattr(self, "session_start"):
@@ -394,16 +428,6 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             )
             await self.channel_layer.group_discard(
                 f"user_{self.user.id}", self.channel_name
-            )
-
-            # Broadcast user status update to all users
-            await self.channel_layer.group_send(
-                "global_online_users",
-                {
-                    "type": "user_status_update",
-                    "user_id": self.user.id,
-                    "is_online": False,
-                },
             )
 
             await self.broadcast_online_count()
