@@ -191,5 +191,5 @@ urlpatterns = [
         path("together/", views.chat_room, name="chat-room"),
 
         # Agora generate token
-        path('api/v1/agora/token/', views.generate_token, name='generate-token'),
+        path('api/v1/agora/token/', views.AgoraTokenView.as_view(), name='agora-token'),
 ]

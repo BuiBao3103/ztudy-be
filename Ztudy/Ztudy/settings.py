@@ -328,5 +328,5 @@ CACHES = {
 }
 
 # Agora credentials
-AGORA_APP_IP = os.getenv("AGORA_APP_IP")
+AGORA_APP_ID = os.getenv("AGORA_APP_ID")
 AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE")
