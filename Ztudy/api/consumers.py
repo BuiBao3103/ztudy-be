@@ -173,6 +173,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.broadcast_participant_list()
 
     async def disconnect(self, close_code):
+
         if hasattr(self, "room_group_name"):
             await self.channel_layer.group_discard(
                 self.room_group_name, self.channel_name
@@ -183,6 +184,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 lambda: RoomParticipant.objects.filter(
                     room=self.room, user=self.user
                 ).update(is_out=True)
+            )()
+
+            await sync_to_async(
+                lambda: User.objects.filter(id=self.user.id).update(is_online=False)
             )()
 
             user = UserSerializer(self.user).data
@@ -197,7 +202,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             text_data_json = json.loads(text_data)
             message_type = text_data_json.get("type")
-            print(f"Message type: {message_type}")
             if message_type == "message":
                 user = UserSerializer(self.user).data
 
@@ -374,10 +378,12 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     async def disconnect(self, close_code):
+        print(f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
             await sync_to_async(User.objects.filter(id=self.user.id).update)(
                 is_online=False
             )
+            print(f"Updating online status for user {self.user.id} to False")
             self.is_active = False
 
             if hasattr(self, "session_start"):
@@ -389,6 +395,17 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(
                 f"user_{self.user.id}", self.channel_name
             )
+
+            # Broadcast user status update to all users
+            await self.channel_layer.group_send(
+                "global_online_users",
+                {
+                    "type": "user_status_update",
+                    "user_id": self.user.id,
+                    "is_online": False,
+                },
+            )
+
             await self.broadcast_online_count()
 
     async def auto_update_study_time(self):
@@ -467,6 +484,18 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                     "type": "send_achievement",
                     "level": event["level"],
                     "monthly_study_time": event["monthly_study_time"],
+                }
+            )
+        )
+
+    async def user_status_update(self, event):
+        """Handle user status update event"""
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "user_status_update",
+                    "user_id": event["user_id"],
+                    "is_online": event["is_online"],
                 }
             )
         )
