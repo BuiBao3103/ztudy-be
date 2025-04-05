@@ -471,21 +471,14 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             )
             self.user.monthly_level = new_level
 
-            await self.send_level_achievement_notification(
-                self.user.id, new_level, new_monthly_time
+            # Send achievement notification directly to the user
+            await self.send(
+                text_data=json.dumps({
+                    "type": "send_achievement",
+                    "level": new_level,
+                    "monthly_study_time": new_monthly_time,
+                })
             )
-
-    async def send_level_achievement_notification(
-        self, user_id, new_level, monthly_study_time
-    ):
-        await self.channel_layer.group_send(
-            f"user_{user_id}",
-            {
-                "type": "send_achievement",
-                "level": new_level,
-                "monthly_study_time": monthly_study_time,
-            },
-        )
 
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
@@ -496,21 +489,9 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         )
 
     async def update_online_count(self, event):
-
         await self.send(
             text_data=json.dumps(
                 {"type": "online_count", "online_count": event["online_count"]}
-            )
-        )
-
-    async def send_achievement(self, event):
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "type": "send_achievement",
-                    "level": event["level"],
-                    "monthly_study_time": event["monthly_study_time"],
-                }
             )
         )
 

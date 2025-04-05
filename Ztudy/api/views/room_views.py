@@ -578,7 +578,7 @@ class RejectJoinRequestAPIView(APIView):
         )
 
 
-class AssignRoomAdminAPIView(APIView):
+class AssignRoomModeratorAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, code_invite, user_id):
@@ -587,10 +587,18 @@ class AssignRoomAdminAPIView(APIView):
         user_request = request.user
 
         participant_user = RoomParticipant.objects.get(user=user_request, room=room)
+        
+        
         if participant_user is None or participant_user.role != Role.ADMIN:
             return Response(
                 {"detail": "You are not authorized to approve requests!"},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if participant_user.user_id == user_id:
+            return Response(
+                {"detail": "You cannot assign yourself as moderator!"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         participant = get_object_or_404(RoomParticipant, room=room, user_id=user_id)
@@ -618,7 +626,7 @@ class AssignRoomAdminAPIView(APIView):
         )
 
 
-class RevokeRoomAdminAPIView(APIView):
+class RevokeRoomModeratorAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, code_invite, user_id):

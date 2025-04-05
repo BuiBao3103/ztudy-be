@@ -15,8 +15,8 @@ from .room_views import (RoomListCreate, RoomRetrieveUpdateDestroy, RoomTrending
                          RoomCategoryListCreate, RoomCategoryRetrieveUpdateDestroy, UploadCategoryThumbnailView,
                          RoomParticipantListCreate, RoomParticipantRetrieveUpdateDestroy,
                          SuggestedRoomsAPIView, JoinRoomAPIView, LeaveRoomAPIView, EndRoomAPIView,
-                         ApproveJoinRequestAPIView, RejectJoinRequestAPIView, AssignRoomAdminAPIView,
-                         RevokeRoomAdminAPIView, CancelJoinRoomAPIView, JoinRandomRoomAPIView)
+                         ApproveJoinRequestAPIView, RejectJoinRequestAPIView, AssignRoomModeratorAPIView,
+                         RevokeRoomModeratorAPIView, CancelJoinRoomAPIView, JoinRandomRoomAPIView)
 from .session_goal_views import SessionGoalListCreate, SessionGoalRetrieveUpdateDestroy
 from .sound_views import SoundList, SoundUpload, SoundDetail, StreamAudioView
 from .stats_views import StudyTimeStatsView, StudyTimeChartView, LeaderboardView
