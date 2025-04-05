@@ -21,11 +21,9 @@ from django.utils.http import urlsafe_base64_encode
 from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 
-
 from .models import (BackgroundVideoType, BackgroundVideo,
                      SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
                      Room, RoomParticipant, Interest, StudySession, RoomType, Role)
-
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 
 User = get_user_model()
@@ -144,7 +142,6 @@ class RoomCategorySerializer(serializers.ModelSerializer):
         model = RoomCategory
         exclude = ['thumbnail']
 
-
     def create(self, validated_data):
         if "name" in validated_data:
             validated_data["name"] = encode_emoji(validated_data["name"])
@@ -170,8 +167,13 @@ class RoomSerializer(FlexFieldsModelSerializer):
             validated_data["code_invite"] = generate_unique_code(Room, "code_invite", 6)
 
         if validated_data['type'] == RoomType.PUBLIC:
-            category = RoomCategory.objects.get(id=validated_data['category'].id)
-            validated_data['thumbnail'] = category.thumbnail
+            if 'category' in validated_data and validated_data['category']:
+                category = RoomCategory.objects.get(id=validated_data['category'].id)
+                validated_data['thumbnail'] = category.thumbnail
+            else:
+                # For public rooms, category is required
+                raise serializers.ValidationError({"category": "Category is required for public rooms"})
+
         room = super().create(validated_data)
 
         if room.creator_user:
@@ -193,6 +195,9 @@ class RoomSerializer(FlexFieldsModelSerializer):
             "category": RoomCategorySerializer,
             "creator_user": UserSerializer,
         }
+        extra_kwargs = {
+            "category": {"required": False},
+        }
 
 
 class RoomJoinSerializer(serializers.ModelSerializer):
@@ -207,8 +212,10 @@ class RoomJoinSerializer(serializers.ModelSerializer):
 class ThumbnailUploadSerializer(serializers.Serializer):
     thumbnail = serializers.ImageField()
 
+
 class CategoryThumbnailUploadSerializer(serializers.Serializer):
     thumbnail = serializers.ImageField()
+
 
 class RoomParticipantSerializer(FlexFieldsModelSerializer):
     class Meta:
@@ -264,7 +271,7 @@ class LeaderboardUserSerializer(serializers.ModelSerializer):
 
 class CustomUserDetailsSerializer(UserDetailsSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
-    
+
     def validate_username(self, value):
         # Skip username uniqueness validation
         return value
@@ -279,7 +286,6 @@ class CustomUserDetailsSerializer(UserDetailsSerializer):
         }
 
 
-
 class CustomRegisterSerializer(RegisterSerializer):
     def save(self, validated_data):
         user = super().save(validated_data)
@@ -290,13 +296,13 @@ class CustomRegisterSerializer(RegisterSerializer):
 
 class CustomPasswordResetForm(PasswordResetForm):
     def send_mail(
-        self,
-        subject_template_name,
-        email_template_name,
-        context,
-        from_email,
-        to_email,
-        html_email_template_name=None,
+            self,
+            subject_template_name,
+            email_template_name,
+            context,
+            from_email,
+            to_email,
+            html_email_template_name=None,
     ):
         user = context.get("user")
         if user:

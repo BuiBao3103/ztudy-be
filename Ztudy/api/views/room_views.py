@@ -23,7 +23,7 @@ from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipan
 
 
 class RoomListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
-    queryset = Room.objects.all()
+    queryset = Room.objects.all().filter(is_active=True)
     serializer_class = RoomSerializer
     filterset_fields = ["code_invite", "category", "creator_user", "type"]
     permit_list_expands = ["category", "creator_user"]
@@ -678,16 +678,20 @@ class EndRoomAPIView(APIView):
         # Update all participants status
         RoomParticipant.objects.filter(room=room).update(is_out=True)
 
-        # Notify all users in the room through websocket
+        # Get all participants except the room creator
+        participants = RoomParticipant.objects.filter(room=room).exclude(user=request.user)
+
+        # Notify all users in the room through websocket except the creator
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"chat_{room.id}",
-            {
-                "type": "room_ended",
-                "room_id": room.id,
-                "code_invite": code_invite
-            }
-        )
+        for participant in participants:
+            async_to_sync(channel_layer.group_send)(
+                f"user_{participant.user.id}",
+                {
+                    "type": "room_ended",
+                    "room_id": room.id,
+                    "code_invite": code_invite
+                }
+            )
 
         return Response(
             {"message": "Room has been ended successfully!"},

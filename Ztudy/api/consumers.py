@@ -37,7 +37,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Always add user to their personal channel
         await self.channel_layer.group_add(self.user_group_name, self.channel_name)
-
+        print(self.room.id)
+        print(self.user.id)
         participant = await sync_to_async(
             lambda: RoomParticipant.objects.filter(
                 room=self.room, user=self.user
@@ -335,6 +336,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def room_ended(self, event):
         """Handle room ended event"""
+        
         await self.send(
             text_data=json.dumps(
                 {
