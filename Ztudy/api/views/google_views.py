@@ -4,13 +4,21 @@ import jwt
 import requests
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from dj_rest_auth.jwt_auth import set_jwt_cookies
 from dj_rest_auth.registration.views import SocialLoginView
+from dj_rest_auth.utils import jwt_encode
+from dj_rest_auth.views import LoginView
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login as django_login
+from django.contrib.auth import authenticate
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.utils import timezone
 from django.views import View
+from dj_rest_auth.app_settings import api_settings
+from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 logger = logging.getLogger(__name__)
@@ -25,74 +33,141 @@ class GoogleLogin(SocialLoginView):
 class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         try:
-            # 1. Lấy token từ Google
-            code = request.GET.get("code")
-            token_response = self.get_google_token(code)
+            code = request.GET.get('code')
+            if not code:
+                return redirect(f"{settings.FRONTEND_URL}?error=no_code")
 
-            # 2. Lấy email từ id_token
-            id_token = token_response.get('id_token')
-            user_info = jwt.decode(id_token, options={"verify_signature": False})
+            # Exchange code for tokens
+            token_response = self.get_google_token(code)
+            if not token_response:
+                return redirect(f"{settings.FRONTEND_URL}?error=token_error")
+
+            # Get user info from Google
+            user_info = self.get_google_user_info(
+                token_response.get('access_token'))
+            if not user_info:
+                return redirect(f"{settings.FRONTEND_URL}?error=user_info_error")
+
+            # Create or update user
+            User = get_user_model()
             email = user_info['email']
 
-            # 3. Lấy hoặc tạo user
-            User = get_user_model()
-            user, _ = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': email.split('@')[0],
-                    'avatar': "https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg",
-                }
-            )
+            try:
+                # Try to get existing user by email
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # Create new user if doesn't exist
+                user = User.objects.create(
+                    email=email,
+                    username=user_info.get(
+                        'name', '').lower(),
+                    avatar="https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg"
 
-            # 4. Tạo JWT token
-            refresh = RefreshToken.for_user(user)
+                )
 
-            # 5. Tạo response với redirect
-            response = redirect(settings.FRONTEND_URL)
+                # Create EmailAddress record
+                from allauth.account.models import EmailAddress
+                EmailAddress.objects.create(
+                    user=user,
+                    email=email,
+                    primary=True,
+                    verified=True  # Google accounts are pre-verified
+                )
+            else:
 
-            # 6. Set cookies theo cấu hình
-            response.set_cookie(
-                settings.REST_AUTH['JWT_AUTH_COOKIE'],  # 'access_token'
-                str(refresh.access_token),
-                httponly=settings.REST_AUTH['JWT_AUTH_HTTPONLY'],  # True
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],  # 'Lax'
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],  # False
-                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH'],  # '/'
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']  # None
-            )
+                # Ensure EmailAddress exists for existing user
+                from allauth.account.models import EmailAddress
+                EmailAddress.objects.get_or_create(
+                    user=user,
+                    email=email,
+                    defaults={
+                        'primary': True,
+                        'verified': True
+                    }
+                )
 
-            response.set_cookie(
-                settings.REST_AUTH['JWT_AUTH_REFRESH_COOKIE'],  # 'refresh_token'
-                str(refresh),
-                httponly=settings.REST_AUTH['JWT_AUTH_HTTPONLY'],  # True
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],  # 'Lax'
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],  # False
-                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH'],  # '/'
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']  # None
-            )
+            # Process login with specific backend
+            if api_settings.SESSION_LOGIN:
+                from allauth.account.auth_backends import AuthenticationBackend
+                backend = AuthenticationBackend()
+                django_login(
+                    request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
 
-            return response
+            # Generate JWT tokens
+            access_token, refresh_token = jwt_encode(user)
+
+            # Create redirect response
+            redirect_response = redirect(settings.FRONTEND_URL)
+
+            # Set JWT cookies directly on redirect response
+            cookie_name = api_settings.JWT_AUTH_COOKIE
+            refresh_cookie_name = api_settings.JWT_AUTH_REFRESH_COOKIE
+            cookie_secure = getattr(
+                settings, 'JWT_AUTH_SECURE', not settings.DEBUG)
+            cookie_httponly = getattr(settings, 'JWT_AUTH_HTTPONLY', True)
+            cookie_samesite = getattr(settings, 'JWT_AUTH_SAMESITE', 'Lax')
+            cookie_path = '/'
+            cookie_domain = None
+            access_token_expiration = timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
+            refresh_token_expiration = timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME
+
+            # Set access token
+            if cookie_name:
+                redirect_response.set_cookie(
+                    cookie_name,
+                    access_token,
+                    expires=access_token_expiration,
+                    secure=cookie_secure,
+                    httponly=cookie_httponly,
+                    samesite=cookie_samesite,
+                    path=cookie_path,
+                    domain=cookie_domain
+                )
+
+            # Set refresh token
+            if refresh_cookie_name:
+                redirect_response.set_cookie(
+                    refresh_cookie_name,
+                    refresh_token,
+                    expires=refresh_token_expiration,
+                    secure=cookie_secure,
+                    httponly=cookie_httponly,
+                    samesite=cookie_samesite,
+                    path=cookie_path,
+                    domain=cookie_domain
+                )
+
+            return redirect_response
 
         except Exception as e:
-            logger.exception("Error during Google callback")
+            logger.exception("Error in Google callback")
             return redirect(f"{settings.FRONTEND_URL}?error=login_failed")
 
     def get_google_token(self, code):
-        token_url = "https://oauth2.googleapis.com/token"
-        token_payload = {
-            "code": code,
-            "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
-            "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
-            "grant_type": "authorization_code"
-        }
+        try:
+            token_url = "https://oauth2.googleapis.com/token"
+            data = {
+                'code': code,
+                'client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+                'client_secret': settings.GOOGLE_OAUTH_CLIENT_SECRET,
+                'redirect_uri': settings.GOOGLE_OAUTH_CALLBACK_URL,
+                'grant_type': 'authorization_code'
+            }
+            response = requests.post(token_url, data=data)
+            return response.json() if response.status_code == 200 else None
+        except Exception as e:
+            logger.exception("Error getting Google token")
+            return None
 
-        token_response = requests.post(token_url, data=token_payload)
-
-        if token_response.status_code != 200:
-            raise Exception(f"Failed to get token: {token_response.text}")
-
-        return token_response.json()
+    def get_google_user_info(self, access_token):
+        try:
+            user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+            headers = {'Authorization': f'Bearer {access_token}'}
+            response = requests.get(user_info_url, headers=headers)
+            return response.json() if response.status_code == 200 else None
+        except Exception as e:
+            logger.exception("Error getting Google user info")
+            return None
 
 
 class LoginPage(View):
