@@ -3,8 +3,7 @@ from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
 from cloudinary.models import CloudinaryField
 
-from api.utils import decode_emoji
-from core.models import User
+from core.utils import decode_emoji
 
 
 class SessionGoalsStatus(models.TextChoices):
@@ -198,13 +197,34 @@ class SessionGoal(models.Model):
         default=SessionGoalsStatus.OPEN,
     )
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="api_goals")
+    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="goals")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.goal
+        return f"{self.goal} - {self.status}"
+
+
+class User(SoftDeleteModel, AbstractUser):
+    username = models.CharField(max_length=150, unique=False)
+    email = models.EmailField(unique=True)
+    is_online = models.BooleanField(default=False)
+    avatar = CloudinaryField("avatar", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    monthly_study_time = models.FloatField(default=0)
+    monthly_level = models.CharField(
+        max_length=20, choices=MonthlyLevel.choices, default=MonthlyLevel.MEMBER
+    )
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
 
 
 class MotivationalQuote(models.Model):
@@ -214,7 +234,7 @@ class MotivationalQuote(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'"{self.quote}" - {self.author}'
+        return f"{self.quote} - {self.author}"
 
 
 class Sound(models.Model):
@@ -224,7 +244,7 @@ class Sound(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return decode_emoji(self.name)
+        return self.name
 
 
 class RoomCategory(models.Model):
@@ -235,7 +255,7 @@ class RoomCategory(models.Model):
     thumbnail = CloudinaryField("thumbnail", null=True, blank=True)
 
     def __str__(self):
-        return f"{self.id}_{decode_emoji(self.name)}"
+        return self.name
 
 
 class Room(models.Model):
@@ -247,7 +267,7 @@ class Room(models.Model):
     creator_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="api_rooms_created",
+        related_name="rooms_created",
         null=True,
         blank=True,
     )
@@ -269,7 +289,7 @@ class RoomParticipant(models.Model):
         Room, on_delete=models.CASCADE, related_name="participants"
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="api_rooms_joined"
+        User, on_delete=models.CASCADE, related_name="rooms_joined"
     )
     joined_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
@@ -277,11 +297,11 @@ class RoomParticipant(models.Model):
     is_approved = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username} - {self.room.name}"
+        return f"{self.user.email} in {self.room.name}"
 
 
 class Interest(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="api_interests")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interests")
     category = models.ForeignKey(
         RoomCategory, on_delete=models.CASCADE, related_name="user_interests"
     )
@@ -291,12 +311,12 @@ class Interest(models.Model):
         unique_together = ("user", "category")
 
     def __str__(self):
-        return f"{self.user.id}_{self.user.username} - {self.category.id}_{decode_emoji(self.category.name)}"
+        return f"{self.user.email} - {self.category.name}"
 
 
 class UserActivityLog(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="api_activity_logs"
+        User, on_delete=models.CASCADE, related_name="activity_logs"
     )
     room = models.ForeignKey(
         "Room", on_delete=models.CASCADE, related_name="activity_logs"
@@ -306,19 +326,18 @@ class UserActivityLog(models.Model):
     interaction_count = models.IntegerField(default=0)
 
     def duration(self):
-        """Tính tổng thời gian user ở trong phòng (tính theo phút)"""
         if self.left_at:
-            return (self.left_at - self.joined_at).total_seconds() / 60
+            return (self.left_at - self.joined_at).total_seconds() / 3600
         return 0
 
     def __str__(self):
-        return f"{self.user.username} - {self.room.name}"
+        return f"{self.user.email} - {self.room.name}"
 
 
 class StudySession(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="api_study_sessions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField()
     total_time = models.FloatField(default=0)
 
     def __str__(self):
-        return f"{self.user.username} - {self.date}: {self.total_time:.2f} h"
+        return f"{self.user.email} - {self.date} - {self.total_time} hours" 
