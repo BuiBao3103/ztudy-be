@@ -52,7 +52,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện H
 USE_X_FORWARDED_HOST = True
 
 # Application definition
-AUTH_USER_MODEL = 'api.User'
+AUTH_USER_MODEL = 'core.User'
 
 INSTALLED_APPS = [
     'corsheaders',
@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'channels',
+    'core.apps.CoreConfig',
     'api.apps.ApiConfig',
     'rest_framework',
     'rest_framework.authtoken',
