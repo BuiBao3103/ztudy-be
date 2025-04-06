@@ -43,15 +43,14 @@ class GoogleLoginCallback(APIView):
                 return redirect(f"{settings.FRONTEND_URL}?error=token_error")
 
             # Get user info from Google
-            user_info = self.get_google_user_info(
-                token_response.get('access_token'))
+            user_info = self.get_google_user_info(token_response.get('access_token'))
             if not user_info:
                 return redirect(f"{settings.FRONTEND_URL}?error=user_info_error")
 
             # Create or update user
             User = get_user_model()
             email = user_info['email']
-
+            
             try:
                 # Try to get existing user by email
                 user = User.objects.get(email=email)
@@ -59,12 +58,10 @@ class GoogleLoginCallback(APIView):
                 # Create new user if doesn't exist
                 user = User.objects.create(
                     email=email,
-                    username=user_info.get(
-                        'name', '').lower(),
+                    username=user_info.get('name', '').lower(),
                     avatar="https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg"
-
                 )
-
+                
                 # Create EmailAddress record
                 from allauth.account.models import EmailAddress
                 EmailAddress.objects.create(
@@ -74,7 +71,6 @@ class GoogleLoginCallback(APIView):
                     verified=True  # Google accounts are pre-verified
                 )
             else:
-
                 # Ensure EmailAddress exists for existing user
                 from allauth.account.models import EmailAddress
                 EmailAddress.objects.get_or_create(
@@ -90,8 +86,7 @@ class GoogleLoginCallback(APIView):
             if api_settings.SESSION_LOGIN:
                 from allauth.account.auth_backends import AuthenticationBackend
                 backend = AuthenticationBackend()
-                django_login(
-                    request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
+                django_login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
 
             # Generate JWT tokens
             access_token, refresh_token = jwt_encode(user)
@@ -99,15 +94,14 @@ class GoogleLoginCallback(APIView):
             # Create redirect response
             redirect_response = redirect(settings.FRONTEND_URL)
 
-            # Set JWT cookies directly on redirect response
-            cookie_name = api_settings.JWT_AUTH_COOKIE
-            refresh_cookie_name = api_settings.JWT_AUTH_REFRESH_COOKIE
-            cookie_secure = getattr(
-                settings, 'JWT_AUTH_SECURE', not settings.DEBUG)
-            cookie_httponly = getattr(settings, 'JWT_AUTH_HTTPONLY', True)
-            cookie_samesite = getattr(settings, 'JWT_AUTH_SAMESITE', 'Lax')
-            cookie_path = '/'
-            cookie_domain = None
+            # Get cookie settings from SIMPLE_JWT
+            cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE']
+            refresh_cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']
+            cookie_secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']  # This is already set based on DEBUG
+            cookie_httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY']
+            cookie_samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
+            cookie_path = settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
+            cookie_domain = settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
             access_token_expiration = timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
             refresh_token_expiration = timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME
 
