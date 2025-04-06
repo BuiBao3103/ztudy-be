@@ -44,7 +44,7 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # Cấu hình SSL dựa trên DEBUG
-SECURE_SSL_REDIRECT = not DEBUG  # True khi DEBUG = False, False khi DEBUG = True
+SECURE_SSL_REDIRECT = False # True khi DEBUG = False, False khi DEBUG = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
 USE_X_FORWARDED_HOST = not DEBUG  # True khi DEBUG = False, False khi DEBUG = True
 
