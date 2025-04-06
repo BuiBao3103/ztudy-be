@@ -7,10 +7,9 @@
         body {
             width: 100vw;
             height: 100vh;
-        }
-
-        .center {
-            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -18,24 +17,56 @@
 
         .container {
             width: 400px;
-            padding: 20px;
-            border: 1px solid gray;
-            border-radius: 4px;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
         }
 
         .title {
-            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            background-color: #fff;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .google-btn:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .google-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
         }
     </style>
 </head>
 <body>
-<div class="center">
     <div class="container">
-        <h1 class="title">Sign in</h1>
-        <a href="https://accounts.google.com/o/oauth2/v2/auth?redirect_uri={{ google_callback_uri }}&prompt=consent&response_type=code&client_id={{ google_client_id }}&scope=openid%20email%20profile&access_type=offline">
+        <h1 class="title">Welcome to Ztudy</h1>
+        <a href="{% url 'google_login' %}" class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo" class="google-icon">
             Sign in with Google
         </a>
     </div>
-</div>
 </body>
 </html>
