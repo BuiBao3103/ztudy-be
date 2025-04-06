@@ -37,14 +37,16 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  
-    
-] + os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
+
+# Cấu hình SSL dựa trên DEBUG
+SECURE_SSL_REDIRECT = not DEBUG  # True khi DEBUG = False, False khi DEBUG = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
+USE_X_FORWARDED_HOST = not DEBUG  # True khi DEBUG = False, False khi DEBUG = True
 
 # Application definition
 AUTH_USER_MODEL = 'api.User'

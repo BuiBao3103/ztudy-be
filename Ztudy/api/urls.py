@@ -2,7 +2,7 @@ from allauth.account.views import ConfirmEmailView
 from django.urls import path, include, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-
+from django.conf import settings
 from . import views
 from .admin import admin
 
@@ -16,6 +16,7 @@ schema_view = get_schema_view(
                 license=openapi.License(name="MIT License"),
         ),
         public=True,
+        url='https://api.ztudy.io.vn/' if not settings.DEBUG else 'http://localhost:8000/',
 )
 
 urlpatterns = [
