@@ -276,7 +276,7 @@ CHANNEL_LAYERS = {
 }
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'templates',
+    BASE_DIR / 'static',
 ]
 
 CLOUDINARY_STORAGE = {
