@@ -43,10 +43,13 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
-# Cấu hình SSL dựa trên DEBUG
-SECURE_SSL_REDIRECT = False # True khi DEBUG = False, False khi DEBUG = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
-USE_X_FORWARDED_HOST = not DEBUG  # True khi DEBUG = False, False khi DEBUG = True
+# CSRF và HTTPS
+CSRF_COOKIE_SECURE = not DEBUG  # True trong production
+SESSION_COOKIE_SECURE = not DEBUG  # True trong production
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn']  # Thêm domain
+SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
+USE_X_FORWARDED_HOST = True
 
 # Application definition
 AUTH_USER_MODEL = 'api.User'
