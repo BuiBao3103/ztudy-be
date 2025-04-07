@@ -6,12 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import F
 from django.utils.timezone import now
 
-from django.db.models import F
-from django.utils.timezone import now
-
 from core.models import (
-    User,
-    StudySession,
     User,
     StudySession,
     MonthlyLevel,
@@ -26,55 +21,49 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
 
         if self.user.is_authenticated:
-            # Increment active connections counter for this user
+            # Add this connection to the user's active connections
             if self.user.id not in self.active_connections:
-                self.active_connections[self.user.id] = 1
-            else:
-                self.active_connections[self.user.id] += 1
+                self.active_connections[self.user.id] = set()
+            self.active_connections[self.user.id].add(self.channel_name)
 
-            # Only update is_online if this is the first connection
-            if self.active_connections[self.user.id] == 1:
-                await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                    is_online=True
-                )
+            # Update online status in database
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                is_online=True
+            )
 
             self.session_start = now()
             self.is_active = True
 
+            # Add to groups
             await self.channel_layer.group_add("global_online_users", self.channel_name)
             await self.channel_layer.group_add(
                 f"user_{self.user.id}", self.channel_name
             )
             await self.accept()
 
+            # Broadcast initial online count
             await self.broadcast_online_count()
 
+            # Start auto-update task
             asyncio.create_task(self.auto_update_study_time())
 
         else:
             await self.close()
 
     async def disconnect(self, close_code):
-        print(f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
-            # Decrement active connections counter
+            # Remove this connection from user's active connections
             if self.user.id in self.active_connections:
-                self.active_connections[self.user.id] -= 1
-                print(
-                    f"Active connections for user {self.user.id}: {self.active_connections[self.user.id]}"
-                )
+                self.active_connections[self.user.id].discard(self.channel_name)
 
-                # Only update is_online if this was the last connection
-                if self.active_connections[self.user.id] <= 0:
+                # If no more active connections, update online status
+                if not self.active_connections[self.user.id]:
                     await sync_to_async(User.objects.filter(id=self.user.id).update)(
                         is_online=False
                     )
-                    print(
-                        f"Updating online status for user {self.user.id} to False - all connections closed"
-                    )
                     del self.active_connections[self.user.id]
 
-                    # Broadcast user status update to all users
+                    # Broadcast user status update
                     await self.channel_layer.group_send(
                         "global_online_users",
                         {
@@ -86,9 +75,11 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
             self.is_active = False
 
+            # Update study time if session was started
             if hasattr(self, "session_start"):
                 await self.update_study_time(self.session_start, now())
 
+            # Remove from groups
             await self.channel_layer.group_discard(
                 "global_online_users", self.channel_name
             )
@@ -96,6 +87,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 f"user_{self.user.id}", self.channel_name
             )
 
+            # Broadcast updated online count
             await self.broadcast_online_count()
 
     async def auto_update_study_time(self):
@@ -135,7 +127,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             )
             self.user.monthly_level = new_level
 
-            # Send achievement notification directly to the user
+            # Send achievement notification
             await self.send(
                 text_data=json.dumps(
                     {
@@ -148,7 +140,6 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
-
         await self.channel_layer.group_send(
             "global_online_users",
             {"type": "update_online_count", "online_count": online_count},
@@ -162,7 +153,6 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         )
 
     async def user_status_update(self, event):
-        """Handle user status update event"""
         await self.send(
             text_data=json.dumps(
                 {
