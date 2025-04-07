@@ -161,7 +161,7 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'AUTH_COOKIE': 'access_token',  # Cookie name for access token
     'AUTH_COOKIE_REFRESH': 'refresh_token',  # Cookie name for refresh token
-    'AUTH_COOKIE_DOMAIN': None,  # Use None for same domain
+    'AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',  # Set to your frontend domain
     'AUTH_COOKIE_SECURE': not DEBUG,  # True in production
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
