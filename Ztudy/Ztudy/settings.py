@@ -72,6 +72,11 @@ SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
+# Thêm cấu hình cho các cookie JWT
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_AGE = 86400  # 1 day in seconds
+
 # Cấu hình khác nhau cho môi trường phát triển và sản phẩm
 if DEBUG:
     # Trong môi trường phát triển, tắt một số ràng buộc bảo mật
@@ -80,9 +85,13 @@ if DEBUG:
     CSRF_COOKIE_DOMAIN = None
     SESSION_COOKIE_DOMAIN = None
     CSRF_COOKIE_SAMESITE = None
+    SESSION_COOKIE_SAMESITE = None
+    CSRF_COOKIE_PATH = '/'
+    SESSION_COOKIE_PATH = '/'
     SIMPLE_JWT['AUTH_COOKIE_SECURE'] = False
     SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = None
     SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = None
+    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
     REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = None
     REST_AUTH['JWT_AUTH_SECURE'] = False
     REST_AUTH['JWT_AUTH_SAMESITE'] = None
@@ -92,6 +101,19 @@ if DEBUG:
     CSRF_EXEMPT_URLS = [r'^.*$']
 else:
     # Trong môi trường sản phẩm, tăng cường bảo mật
+    # Đặt tất cả cookie cùng domain cha
+    CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+    SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+    CSRF_COOKIE_PATH = '/'
+    SESSION_COOKIE_PATH = '/'
+    SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
+    SIMPLE_JWT['AUTH_COOKIE_SECURE'] = True
+    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = 'None'
+    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
+    REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
+    REST_AUTH['JWT_AUTH_SECURE'] = True
+    REST_AUTH['JWT_AUTH_SAMESITE'] = 'None'
+    
     # Miễn CSRF chỉ cho các API cần thiết
     CSRF_EXEMPT_URLS = [
         r'^/api/v1/auth/',      # Auth endpoints
