@@ -99,9 +99,9 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -205,11 +205,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = True
 
 USE_I18N = True
-
-USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -287,22 +286,27 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
     'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
 }
-TIME_ZONE = 'Asia/Ho_Chi_Minh'
-USE_TZ = False
 
 # settings.py
 LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
+CELERY_IMPORTS = (
+    'scheduler.leaderboard_tasks',
+    'scheduler.monthly_tasks',
+)
 CELERY_BEAT_SCHEDULE = {
     'update_leaderboards': {
-        'task': 'scheduler.tasks.update_leaderboards',
+        'task': 'scheduler.leaderboard_tasks.update_leaderboards',
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
-        # Expires before next run
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
     },
     'reset_monthly_study_time': {
-        'task': 'scheduler.tasks.reset_monthly_study_time',
+        'task': 'scheduler.monthly_tasks.reset_monthly_study_time',
         'schedule': crontab(minute=0, hour=0, day_of_month=1)
     },
 }
