@@ -77,6 +77,43 @@ SESSION_COOKIE_PATH = '/'
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_AGE = 86400  # 1 day in seconds
 
+# JWT Settings
+ACCESS_TOKEN_LIFETIME = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 5))
+REFRESH_TOKEN_LIFETIME = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_DOMAIN': None,
+    'AUTH_COOKIE_SECURE': False,
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': None,
+}
+
+# dj-rest-auth settings
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
+    'JWT_AUTH_COOKIE_DOMAIN': None,
+    'JWT_AUTH_SECURE': False,
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': None,
+    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
+    'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
+    'OLD_PASSWORD_FIELD_ENABLED': True,
+    'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
+    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'api.serializers.CustomPasswordResetConfirmSerializer',
+    'REGISTER_SERIALIZER': 'api.serializers.CustomRegisterSerializer',
+}
+
 # Cấu hình khác nhau cho môi trường phát triển và sản phẩm
 if DEBUG:
     # Trong môi trường phát triển, tắt một số ràng buộc bảo mật
@@ -220,43 +257,6 @@ DATABASES = {
             'use_unicode': True,
         },
     }
-}
-
-# JWT Settings
-ACCESS_TOKEN_LIFETIME = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 5))
-REFRESH_TOKEN_LIFETIME = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))
-
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'AUTH_COOKIE': 'access_token',
-    'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_DOMAIN': None,
-    'AUTH_COOKIE_SECURE': False,
-    'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': None,
-}
-
-# dj-rest-auth settings
-REST_AUTH = {
-    'USE_JWT': True,
-    'JWT_AUTH_COOKIE': 'access_token',
-    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_COOKIE_DOMAIN': None,
-    'JWT_AUTH_SECURE': False,
-    'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': None,
-    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
-    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
-    'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
-    'OLD_PASSWORD_FIELD_ENABLED': True,
-    'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
-    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'api.serializers.CustomPasswordResetConfirmSerializer',
-    'REGISTER_SERIALIZER': 'api.serializers.CustomRegisterSerializer',
 }
 
 # Password validation
