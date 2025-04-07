@@ -369,9 +369,9 @@ CLOUDINARY_STORAGE = {
 LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['pickle']
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_ACCEPT_CONTENT = ['json']  # Chỉ chấp nhận JSON
+CELERY_TASK_SERIALIZER = 'json'   # Sử dụng JSON cho task
+CELERY_RESULT_SERIALIZER = 'json' # Sử dụng JSON cho kết quả
 CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
 CELERY_IMPORTS = (
     'scheduler.leaderboard_tasks',
