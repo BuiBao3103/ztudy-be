@@ -42,16 +42,28 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
-CSRF_COOKIE_DOMAIN = None  # Changed from 'ztudy.io.vn' to None to allow the cookie to be set on the request domain
-SESSION_COOKIE_DOMAIN = None  # Changed from 'ztudy.io.vn' to None to allow the cookie to be set on the request domain
+CSRF_COOKIE_DOMAIN = None  # Allow the cookie to be set on the request domain
+SESSION_COOKIE_DOMAIN = None  # Allow the cookie to be set on the request domain
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF
 CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
-CSRF_COOKIE_SAMESITE = 'Lax'  # Set SameSite attribute
+CSRF_COOKIE_SAMESITE = 'None'  # Changed from 'Lax' to 'None' for cross-domain requests
 CSRF_COOKIE_PATH = '/'  # Ensure cookie is available on all paths
 CSRF_COOKIE_NAME = 'csrftoken'  # Explicitly set the cookie name
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Explicitly set the header name
@@ -59,6 +71,11 @@ CSRF_COOKIE_AGE = 31449600  # Set cookie age to 1 year in seconds
 SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
 USE_X_FORWARDED_HOST = True
+
+# If using SameSite=None, the cookie must be secure
+if CSRF_COOKIE_SAMESITE == 'None':
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 
 # Application definition
 AUTH_USER_MODEL = 'core.User'
@@ -100,19 +117,14 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-    ),
-    'DEFAULT_PARSER_CLASSES': (
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
-    ),
+    'CSRF_COOKIE_DOMAIN': None,
+    'CSRF_COOKIE_SAMESITE': 'None',
+    'CSRF_COOKIE_SECURE': True,
 }
 
 MIDDLEWARE = [
@@ -177,11 +189,11 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',
-    'AUTH_COOKIE_SECURE': not DEBUG,
+    'AUTH_COOKIE_DOMAIN': None,  # Changed from 'ztudy.io.vn' to None to match the CSRF settings
+    'AUTH_COOKIE_SECURE': True,  # Must be True when SameSite is 'None'
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    'AUTH_COOKIE_SAMESITE': 'None',  # Changed from 'Lax' to 'None' for cross-domain requests
 }
 
 # dj-rest-auth settings
@@ -189,10 +201,10 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',
-    'JWT_AUTH_SECURE': not DEBUG,
+    'JWT_AUTH_COOKIE_DOMAIN': None,  # Changed from 'ztudy.io.vn' to None to match the CSRF settings
+    'JWT_AUTH_SECURE': True,  # Must be True when SameSite is 'None'
     'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_SAMESITE': 'None',  # Changed from 'Lax' to 'None' for cross-domain requests
     'JWT_AUTH_COOKIE_USE_CSRF': True,
     'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
