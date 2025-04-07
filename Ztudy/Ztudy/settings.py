@@ -56,21 +56,24 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = True  # Force to True since we're using cross-domain
-SESSION_COOKIE_SECURE = True  # Force to True since we're using cross-domain
-CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
-CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'  # Using dot prefix to allow all subdomains
-SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'  # Using dot prefix to allow all subdomains
-CSRF_USE_SESSIONS = False  # Use cookie-based CSRF
-CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
-CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-domain cookies
-CSRF_COOKIE_PATH = '/'  # Ensure cookie is available on all paths
-CSRF_COOKIE_NAME = 'csrftoken'  # Explicitly set the cookie name
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Explicitly set the header name
-CSRF_COOKIE_AGE = 31449600  # Set cookie age to 1 year in seconds
-SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
+CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_PATH = '/'
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_AGE = 31449600
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+
+# Completely disable CSRF for all endpoints
+CSRF_EXEMPT_URLS = [r'^.*$']  # This exempts all URLs from CSRF protection
 
 # Application definition
 AUTH_USER_MODEL = 'core.User'
@@ -127,7 +130,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'api.middleware.CustomCsrfMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -196,12 +199,12 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',  # Using dot prefix to allow all subdomains
-    'JWT_AUTH_SECURE': True,  # Required for SameSite=None
+    'JWT_AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',
+    'JWT_AUTH_SECURE': True,
     'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': 'None',  # Required for cross-domain
-    'JWT_AUTH_COOKIE_USE_CSRF': True,
-    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': True,
+    'JWT_AUTH_SAMESITE': 'None',
+    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
