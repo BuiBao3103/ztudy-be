@@ -47,10 +47,15 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
-CSRF_COOKIE_DOMAIN = 'ztudy.io.vn'
-SESSION_COOKIE_DOMAIN = 'ztudy.io.vn'
-CSRF_USE_SESSIONS = True  # Sử dụng session để lưu CSRF token
+CSRF_COOKIE_DOMAIN = None  # Changed from 'ztudy.io.vn' to None to allow the cookie to be set on the request domain
+SESSION_COOKIE_DOMAIN = None  # Changed from 'ztudy.io.vn' to None to allow the cookie to be set on the request domain
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF
 CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # Set SameSite attribute
+CSRF_COOKIE_PATH = '/'  # Ensure cookie is available on all paths
+CSRF_COOKIE_NAME = 'csrftoken'  # Explicitly set the cookie name
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Explicitly set the header name
+CSRF_COOKIE_AGE = 31449600  # Set cookie age to 1 year in seconds
 SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
 USE_X_FORWARDED_HOST = True
@@ -99,7 +104,15 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    # 'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ),
 }
 
 MIDDLEWARE = [
@@ -108,6 +121,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'api.middleware.EnsureCsrfCookieMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
