@@ -1,19 +1,16 @@
 import asyncio
 import json
-from .models import (
-    Role,
-)
+
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import F
 from django.utils.timezone import now
 
-from .models import Room, RoomParticipant, User, StudySession, MonthlyLevel
-from .serializers import UserSerializer
+from api.serializers import UserSerializer
 from django.db.models import F, Q
 from django.utils.timezone import now
 
-from .models import Room, RoomParticipant, User, StudySession
+from core.models import Room, RoomParticipant, User, StudySession, Role, Room, RoomParticipant, User, StudySession, MonthlyLevel
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -188,7 +185,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )()
 
             await sync_to_async(
-                lambda: User.objects.filter(id=self.user.id).update(is_online=False)
+                lambda: User.objects.filter(
+                    id=self.user.id).update(is_online=False)
             )()
 
             user = UserSerializer(self.user).data
@@ -256,7 +254,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def user_joined(self, event):
         # Gửi thông tin người dùng khi họ tham gia phòng
         await self.send(
-            text_data=json.dumps({"type": "user_joined", "user": event["user"]})
+            text_data=json.dumps(
+                {"type": "user_joined", "user": event["user"]})
         )
 
     async def user_left(self, event):
@@ -284,13 +283,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_send(
             self.room_group_name,
-            {"type": "update_participant_list", "participants": participant_data_list},
+            {"type": "update_participant_list",
+                "participants": participant_data_list},
         )
 
     async def update_participant_list(self, event):
         await self.send(
             text_data=json.dumps(
-                {"type": "participant_list", "participants": event["participants"]}
+                {"type": "participant_list",
+                    "participants": event["participants"]}
             )
         )
 
@@ -336,7 +337,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def room_ended(self, event):
         """Handle room ended event"""
-        
+
         await self.send(
             text_data=json.dumps(
                 {
@@ -391,7 +392,8 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     async def disconnect(self, close_code):
-        print(f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
+        print(
+            f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
             # Decrement active connections counter
             if self.user.id in self.active_connections:

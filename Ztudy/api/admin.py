@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.apps import apps
 from django.utils.html import format_html
-from .models import (
+from core.models import (
     Room,
     User,
     RoomCategory,

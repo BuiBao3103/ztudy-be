@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models import StudySession, User, MonthlyLevel
+from core.models import StudySession, User, MonthlyLevel
 from ..pagination import CustomPagination
 from ..serializers import LeaderboardUserSerializer
 

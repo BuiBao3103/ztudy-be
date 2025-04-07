@@ -5,7 +5,7 @@ import random
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from ..models import MotivationalQuote
+from core.models import MotivationalQuote
 from ..serializers import MotivationalQuoteSerializer
 
 class MotivationalQuoteListCreate(generics.ListCreateAPIView):

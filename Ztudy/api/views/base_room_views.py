@@ -2,7 +2,7 @@ from rest_flex_fields.views import FlexFieldsMixin
 from rest_framework import generics
 
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
-from ..models import Room, RoomCategory, RoomParticipant
+from core.models import Room, RoomCategory, RoomParticipant
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer
 from ..pagination import CustomPagination
 
