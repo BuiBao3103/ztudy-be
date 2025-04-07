@@ -42,14 +42,38 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = not DEBUG  # True trong production
-SESSION_COOKIE_SECURE = not DEBUG  # True trong production
-CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn']  # Thêm domain
-SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
+CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_PATH = '/'
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_AGE = 31449600
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+
+# Completely disable CSRF for all endpoints
+CSRF_EXEMPT_URLS = [r'^.*$']  # This exempts all URLs from CSRF protection
 
 # Application definition
 AUTH_USER_MODEL = 'core.User'
@@ -91,19 +115,21 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    # 'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'CSRF_COOKIE_DOMAIN': None,
+    'CSRF_COOKIE_SAMESITE': 'None',
+    'CSRF_COOKIE_SECURE': True,
 }
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -153,28 +179,31 @@ ACCESS_TOKEN_LIFETIME = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 5))
 REFRESH_TOKEN_LIFETIME = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=ACCESS_TOKEN_LIFETIME),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=REFRESH_TOKEN_LIFETIME),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_COOKIE': 'access_token',  # Cookie name for access token
-    'AUTH_COOKIE_REFRESH': 'refresh_token',  # Cookie name for refresh token
-    'AUTH_COOKIE_DOMAIN': None,  # Use None for same domain
-    'AUTH_COOKIE_SECURE': not DEBUG,  # True in production
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',  # Using dot prefix to allow all subdomains
+    'AUTH_COOKIE_SECURE': True,  # Required for SameSite=None
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'Lax',
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
+    'AUTH_COOKIE_SAMESITE': 'None',  # Required for cross-domain
 }
 
 # dj-rest-auth settings
 REST_AUTH = {
-    "USE_JWT": True,
-    "JWT_AUTH_COOKIE": SIMPLE_JWT['AUTH_COOKIE'],
-    "JWT_AUTH_REFRESH_COOKIE": SIMPLE_JWT['AUTH_COOKIE_REFRESH'],
-    "JWT_AUTH_HTTPONLY": SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
+    'JWT_AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',
+    'JWT_AUTH_SECURE': True,
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': 'None',
+    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
@@ -205,11 +234,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = True
 
 USE_I18N = True
-
-USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -230,6 +258,7 @@ SITE_ID = 1
 # Django Allauth settings
 ACCOUNT_LOGIN_METHODS = {"email"}  # Use Email / Password authentication
 ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_ADAPTER = 'api.adapters.CustomAccountAdapter'
@@ -287,22 +316,27 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
     'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
 }
-TIME_ZONE = 'Asia/Ho_Chi_Minh'
-USE_TZ = False
 
 # settings.py
 LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['pickle']
+CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
+CELERY_IMPORTS = (
+    'scheduler.leaderboard_tasks',
+    'scheduler.monthly_tasks',
+)
 CELERY_BEAT_SCHEDULE = {
     'update_leaderboards': {
-        'task': 'scheduler.tasks.update_leaderboards',
+        'task': 'scheduler.leaderboard_tasks.update_leaderboards',
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
-        # Expires before next run
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
     },
     'reset_monthly_study_time': {
-        'task': 'scheduler.tasks.reset_monthly_study_time',
+        'task': 'scheduler.monthly_tasks.reset_monthly_study_time',
         'schedule': crontab(minute=0, hour=0, day_of_month=1)
     },
 }
