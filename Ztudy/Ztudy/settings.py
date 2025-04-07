@@ -56,11 +56,12 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_DOMAIN = None
-SESSION_COOKIE_DOMAIN = None
-CSRF_COOKIE_SAMESITE = None
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
+CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+CSRF_COOKIE_SAMESITE = 'None'
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_PATH = '/'
@@ -71,8 +72,33 @@ SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
-# Completely disable CSRF for all endpoints
-CSRF_EXEMPT_URLS = [r'^.*$']  # This exempts all URLs from CSRF protection
+# Cấu hình khác nhau cho môi trường phát triển và sản phẩm
+if DEBUG:
+    # Trong môi trường phát triển, tắt một số ràng buộc bảo mật
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_DOMAIN = None
+    SESSION_COOKIE_DOMAIN = None
+    CSRF_COOKIE_SAMESITE = None
+    SIMPLE_JWT['AUTH_COOKIE_SECURE'] = False
+    SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = None
+    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = None
+    REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = None
+    REST_AUTH['JWT_AUTH_SECURE'] = False
+    REST_AUTH['JWT_AUTH_SAMESITE'] = None
+    CORS_ALLOW_ALL_ORIGINS = True
+    
+    # Trong môi trường phát triển, miễn CSRF cho tất cả
+    CSRF_EXEMPT_URLS = [r'^.*$']
+else:
+    # Trong môi trường sản phẩm, tăng cường bảo mật
+    # Miễn CSRF chỉ cho các API cần thiết
+    CSRF_EXEMPT_URLS = [
+        r'^/api/v1/auth/',      # Auth endpoints
+        r'^/ws/',               # WebSocket
+        r'^/api/v1/rooms/',     # Room operations
+        r'^/api/v1/users/',     # User operations
+    ]
 
 # Application definition
 AUTH_USER_MODEL = 'core.User'
@@ -129,6 +155,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
