@@ -44,10 +44,11 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = not DEBUG  # True trong production
-SESSION_COOKIE_SECURE = not DEBUG  # True trong production
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
-CSRF_COOKIE_DOMAIN = 'ztudy.io.vn'  # Thêm domain cho cookie
+CSRF_COOKIE_DOMAIN = 'ztudy.io.vn'
+SESSION_COOKIE_DOMAIN = 'ztudy.io.vn'
 CSRF_USE_SESSIONS = True  # Sử dụng session để lưu CSRF token
 CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
 SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
@@ -156,28 +157,31 @@ ACCESS_TOKEN_LIFETIME = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 5))
 REFRESH_TOKEN_LIFETIME = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=ACCESS_TOKEN_LIFETIME),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=REFRESH_TOKEN_LIFETIME),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
-    'AUTH_COOKIE': 'access_token',  # Cookie name for access token
-    'AUTH_COOKIE_REFRESH': 'refresh_token',  # Cookie name for refresh token
-    'AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',  # Set to your frontend domain
-    'AUTH_COOKIE_SECURE': not DEBUG,  # True in production
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',
+    'AUTH_COOKIE_SECURE': not DEBUG,
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
     'AUTH_COOKIE_SAMESITE': 'Lax',
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
 }
 
 # dj-rest-auth settings
 REST_AUTH = {
-    "USE_JWT": True,
-    "JWT_AUTH_COOKIE": SIMPLE_JWT['AUTH_COOKIE'],
-    "JWT_AUTH_REFRESH_COOKIE": SIMPLE_JWT['AUTH_COOKIE_REFRESH'],
-    "JWT_AUTH_HTTPONLY": SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
+    'JWT_AUTH_COOKIE_DOMAIN': 'ztudy.io.vn',
+    'JWT_AUTH_SECURE': not DEBUG,
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_COOKIE_USE_CSRF': True,
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
