@@ -46,7 +46,10 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF và HTTPS
 CSRF_COOKIE_SECURE = not DEBUG  # True trong production
 SESSION_COOKIE_SECURE = not DEBUG  # True trong production
-CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn']  # Thêm domain
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
+CSRF_COOKIE_DOMAIN = 'ztudy.io.vn'  # Thêm domain cho cookie
+CSRF_USE_SESSIONS = True  # Sử dụng session để lưu CSRF token
+CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
 SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
 USE_X_FORWARDED_HOST = True
