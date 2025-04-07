@@ -39,7 +39,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -56,14 +56,13 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
-CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
-SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_DOMAIN = None
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_SAMESITE = None
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_PATH = '/'
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
@@ -121,8 +120,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     'CSRF_COOKIE_DOMAIN': None,
-    'CSRF_COOKIE_SAMESITE': 'None',
-    'CSRF_COOKIE_SECURE': True,
+    'CSRF_COOKIE_SAMESITE': None,
+    'CSRF_COOKIE_SECURE': False,
 }
 
 MIDDLEWARE = [
@@ -186,11 +185,11 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',  # Using dot prefix to allow all subdomains
-    'AUTH_COOKIE_SECURE': True,  # Required for SameSite=None
+    'AUTH_COOKIE_DOMAIN': None,
+    'AUTH_COOKIE_SECURE': False,
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'None',  # Required for cross-domain
+    'AUTH_COOKIE_SAMESITE': None,
 }
 
 # dj-rest-auth settings
@@ -198,10 +197,10 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',
-    'JWT_AUTH_SECURE': True,
+    'JWT_AUTH_COOKIE_DOMAIN': None,
+    'JWT_AUTH_SECURE': False,
     'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': 'None',
+    'JWT_AUTH_SAMESITE': None,
     'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
     'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
