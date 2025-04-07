@@ -68,6 +68,8 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'api.apps.ApiConfig',
     'socket_service.apps.SocketServiceConfig',
+    'ml_service.apps.MlServiceConfig',
+    'admin_panel.apps.AdminPanelConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'dj_rest_auth',
