@@ -15,7 +15,7 @@ from core.models import (
     UserActivityLog,
     StudySession,
 )
-from .utils import decode_emoji
+from api.utils import decode_emoji
 from django import forms
 import tempfile
 import os
