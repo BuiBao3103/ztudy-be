@@ -56,14 +56,14 @@ CORS_ALLOW_HEADERS = [
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
 # CSRF và HTTPS
-CSRF_COOKIE_SECURE = not DEBUG
-SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = True  # Force to True since we're using cross-domain
+SESSION_COOKIE_SECURE = True  # Force to True since we're using cross-domain
 CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']  # Thêm domain
-CSRF_COOKIE_DOMAIN = None  # Allow the cookie to be set on the request domain
-SESSION_COOKIE_DOMAIN = None  # Allow the cookie to be set on the request domain
+CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'  # Using dot prefix to allow all subdomains
+SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'  # Using dot prefix to allow all subdomains
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF
 CSRF_COOKIE_HTTPONLY = False  # Cho phép JavaScript đọc cookie
-CSRF_COOKIE_SAMESITE = 'None'  # Changed from 'Lax' to 'None' for cross-domain requests
+CSRF_COOKIE_SAMESITE = 'None'  # Allow cross-domain cookies
 CSRF_COOKIE_PATH = '/'  # Ensure cookie is available on all paths
 CSRF_COOKIE_NAME = 'csrftoken'  # Explicitly set the cookie name
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Explicitly set the header name
@@ -71,11 +71,6 @@ CSRF_COOKIE_AGE = 31449600  # Set cookie age to 1 year in seconds
 SECURE_SSL_REDIRECT = False  # Nginx đã xử lý redirect
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nhận diện HTTPS
 USE_X_FORWARDED_HOST = True
-
-# If using SameSite=None, the cookie must be secure
-if CSRF_COOKIE_SAMESITE == 'None':
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
 
 # Application definition
 AUTH_USER_MODEL = 'core.User'
@@ -189,11 +184,11 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_DOMAIN': None,  # Changed from 'ztudy.io.vn' to None to match the CSRF settings
-    'AUTH_COOKIE_SECURE': True,  # Must be True when SameSite is 'None'
+    'AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',  # Using dot prefix to allow all subdomains
+    'AUTH_COOKIE_SECURE': True,  # Required for SameSite=None
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'None',  # Changed from 'Lax' to 'None' for cross-domain requests
+    'AUTH_COOKIE_SAMESITE': 'None',  # Required for cross-domain
 }
 
 # dj-rest-auth settings
@@ -201,10 +196,10 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'access_token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
-    'JWT_AUTH_COOKIE_DOMAIN': None,  # Changed from 'ztudy.io.vn' to None to match the CSRF settings
-    'JWT_AUTH_SECURE': True,  # Must be True when SameSite is 'None'
+    'JWT_AUTH_COOKIE_DOMAIN': '.ztudy.io.vn',  # Using dot prefix to allow all subdomains
+    'JWT_AUTH_SECURE': True,  # Required for SameSite=None
     'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': 'None',  # Changed from 'Lax' to 'None' for cross-domain requests
+    'JWT_AUTH_SAMESITE': 'None',  # Required for cross-domain
     'JWT_AUTH_COOKIE_USE_CSRF': True,
     'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': True,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
