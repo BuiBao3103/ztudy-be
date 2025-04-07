@@ -16,7 +16,7 @@ from rest_framework.views import APIView
 
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..ml import content_based_filtering, collaborative_filtering
-from ..models import Room, RoomCategory, RoomParticipant, UserActivityLog, Role, RoomType
+from core.models import Room, RoomCategory, RoomParticipant, UserActivityLog, Role, RoomType
 from ..pagination import CustomPagination
 from ..serializers import RoomSerializer, RoomCategorySerializer, RoomParticipantSerializer, ThumbnailUploadSerializer, \
     UserSerializer, RoomJoinSerializer, CategoryThumbnailUploadSerializer

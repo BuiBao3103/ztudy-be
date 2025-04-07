@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from django.http import StreamingHttpResponse
-from ..models import Sound
+from core.models import Sound
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..serializers import SoundSerializer
 from rest_framework.views import APIView

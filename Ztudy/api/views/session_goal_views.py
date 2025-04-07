@@ -1,5 +1,5 @@
 from rest_flex_fields.views import FlexFieldsMixin
-from ..models import SessionGoal
+from core.models import SessionGoal
 from ..serializers import SessionGoalSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from ..filters import SessionGoalFilter

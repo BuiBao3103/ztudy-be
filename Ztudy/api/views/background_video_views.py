@@ -1,6 +1,6 @@
 from rest_flex_fields.views import FlexFieldsMixin
-from ..models import BackgroundVideo, BackgroundVideoType
-from ..serializers import BackgroundVideoSerializer, BackgroundVideoTypeSerializer, BackgroundVideoUploadSerializer
+from core.models import BackgroundVideo, BackgroundVideoType
+from api.serializers import BackgroundVideoSerializer, BackgroundVideoTypeSerializer, BackgroundVideoUploadSerializer
 from .base_views import BaseListCreateView, BaseRetrieveUpdateDestroyView, SwaggerExpandMixin
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response

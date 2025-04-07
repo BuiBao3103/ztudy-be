@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'channels',
     'core.apps.CoreConfig',
     'api.apps.ApiConfig',
+    'socket_service.apps.SocketServiceConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'dj_rest_auth',
@@ -342,7 +343,6 @@ AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE")
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_ADAPTER = 'api.adapters.CustomAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'api.adapters.CustomSocialAccountAdapter'

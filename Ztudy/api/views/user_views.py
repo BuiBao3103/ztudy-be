@@ -5,7 +5,7 @@ from ..pagination import CustomPagination
 from ..serializers import UserSerializer, AddUserInterestSerializer, RoomCategorySerializer, AvatarUploadSerializer
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from ..models import User, Interest, RoomCategory
+from core.models import User, Interest, RoomCategory
 from ..exceptions import CustomAPIException
 import cloudinary.uploader
 import cloudinary.uploader

@@ -1,5 +1,5 @@
 from django.db.models import Case, When, Value, IntegerField, Count
-from .models import Room, UserActivityLog, Interest
+from core.models import Room, UserActivityLog, Interest
 
 
 def get_user_interests(user):

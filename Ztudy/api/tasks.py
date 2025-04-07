@@ -4,7 +4,7 @@ from datetime import timedelta, date
 import redis
 import logging
 from django.conf import settings
-from .models import StudySession, User, MonthlyLevel  # Giả định model đã định nghĩa
+from core.models import StudySession, User, MonthlyLevel  # Giả định model đã định nghĩa
 
 # Thiết lập logging
 logger = logging.getLogger(__name__)
