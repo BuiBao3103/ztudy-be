@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'socket_service.apps.SocketServiceConfig',
     'ml_service.apps.MlServiceConfig',
     'admin_panel.apps.AdminPanelConfig',
+    'scheduler.apps.SchedulerConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'dj_rest_auth',
@@ -296,13 +297,13 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULE = {
     'update_leaderboards': {
-        'task': 'api.tasks.update_leaderboards',
+        'task': 'scheduler.tasks.update_leaderboards',
         'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
         # Expires before next run
         'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
     },
     'reset_monthly_study_time': {
-        'task': 'api.tasks.reset_monthly_study_time',
+        'task': 'scheduler.tasks.reset_monthly_study_time',
         'schedule': crontab(minute=0, hour=0, day_of_month=1)
     },
 }
