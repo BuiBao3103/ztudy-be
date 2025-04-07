@@ -192,7 +192,6 @@ urlpatterns = [
         name="swagger-ui",
     ),
     # Chat Room URL
-    path("together/", views.chat_room, name="chat-room"),
 
     # Agora generate token
     path('agora/token/', views.AgoraTokenView.as_view(), name='agora-token'),

@@ -27,5 +27,4 @@ from .user_views import (
     AddUserInterest,
     UploadAvatarView,
 )
-from .views import chat_room
 from .agora_views import AgoraTokenView
