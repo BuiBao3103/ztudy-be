@@ -20,7 +20,7 @@ from .forms import (
     RoomCategoryAdminForm,
     UserAdminForm,
 )
-from ..utils import get_decoded_field
+from .utils import get_decoded_field
 
 
 class RoomAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
@@ -123,7 +123,6 @@ class BackgroundVideoAdmin(CloudinaryAdminMixin, admin.ModelAdmin):
     search_fields = ("youtube_url",)
     readonly_fields = ("created_at", "updated_at")
     list_per_page = 20
-    date_hierarchy = "created_at"
 
     def decoded_type(self, obj):
         return get_decoded_field(obj.type, 'name')
