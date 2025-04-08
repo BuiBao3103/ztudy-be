@@ -1,15 +1,17 @@
 import asyncio
 import json
-
-from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.db.models import F
 from django.utils.timezone import now
+from asgiref.sync import sync_to_async
+
+from socket_service.utils import (
+    update_user_online_status,
+    update_study_time,
+)
+from socket_service.serializers import WebSocketMessageSerializer
 
 from core.models import (
     User,
-    StudySession,
-    MonthlyLevel,
 )
 
 
@@ -27,9 +29,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             self.active_connections[self.user.id].add(self.channel_name)
 
             # Update online status in database
-            await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                is_online=True
-            )
+            await update_user_online_status(self.user.id, True)
 
             self.session_start = now()
             self.is_active = True
@@ -58,9 +58,7 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
                 # If no more active connections, update online status
                 if not self.active_connections[self.user.id]:
-                    await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                        is_online=False
-                    )
+                    await update_user_online_status(self.user.id, False)
                     del self.active_connections[self.user.id]
 
                     # Broadcast user status update
@@ -77,7 +75,12 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
             # Update study time if session was started
             if hasattr(self, "session_start"):
-                await self.update_study_time(self.session_start, now())
+                new_level, new_monthly_time = await update_study_time(
+                    self.user, self.session_start, now()
+                )
+
+                if new_level:
+                    await self.send_achievement(new_level, new_monthly_time)
 
             # Remove from groups
             await self.channel_layer.group_discard(
@@ -94,49 +97,27 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         while self.is_active:
             await asyncio.sleep(15)
             if self.is_active:
-                await self.update_study_time(self.session_start, now())
+                new_level, new_monthly_time = await update_study_time(
+                    self.user, self.session_start, now()
+                )
+
+                if new_level:
+                    await self.send_achievement(new_level, new_monthly_time)
+
                 self.session_start = now()
 
-    async def update_study_time(self, session_start, session_end):
-        study_duration = (session_end - session_start).total_seconds() / 3600
-        study_date = session_start.date()
-
-        record, created = await sync_to_async(StudySession.objects.get_or_create)(
-            user=self.user, date=study_date
-        )
-
-        if created:
-            record.total_time = study_duration
-            await sync_to_async(record.save)()
-        else:
-            await sync_to_async(StudySession.objects.filter(id=record.id).update)(
-                total_time=F("total_time") + study_duration
-            )
-
-        await sync_to_async(User.objects.filter(id=self.user.id).update)(
-            monthly_study_time=F("monthly_study_time") + study_duration
-        )
-
-        new_monthly_time = self.user.monthly_study_time + study_duration
-        self.user.monthly_study_time = new_monthly_time
-
-        new_level = MonthlyLevel.get_role_from_time(new_monthly_time)
-        if MonthlyLevel.compare_levels(new_level, self.user.monthly_level) > 0:
-            await sync_to_async(User.objects.filter(id=self.user.id).update)(
-                monthly_level=new_level
-            )
-            self.user.monthly_level = new_level
-
-            # Send achievement notification
-            await self.send(
-                text_data=json.dumps(
+    async def send_achievement(self, level, monthly_study_time):
+        await self.send(
+            text_data=json.dumps(
+                WebSocketMessageSerializer(
                     {
                         "type": "send_achievement",
-                        "level": new_level,
-                        "monthly_study_time": new_monthly_time,
+                        "level": level,
+                        "monthly_study_time": monthly_study_time,
                     }
-                )
+                ).data
             )
+        )
 
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
@@ -148,17 +129,21 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def update_online_count(self, event):
         await self.send(
             text_data=json.dumps(
-                {"type": "online_count", "online_count": event["online_count"]}
+                WebSocketMessageSerializer(
+                    {"type": "online_count", "online_count": event["online_count"]}
+                ).data
             )
         )
 
     async def user_status_update(self, event):
         await self.send(
             text_data=json.dumps(
-                {
-                    "type": "user_status_update",
-                    "user_id": event["user_id"],
-                    "is_online": event["is_online"],
-                }
+                WebSocketMessageSerializer(
+                    {
+                        "type": "user_status_update",
+                        "user_id": event["user_id"],
+                        "is_online": event["is_online"],
+                    }
+                ).data
             )
         )
