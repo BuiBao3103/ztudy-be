@@ -1,6 +1,6 @@
 from django.contrib import admin
 from cloudinary.models import CloudinaryField
-from ..utils import render_image_preview, render_url_link
+from .utils import render_image_preview, render_url_link
 
 
 class CloudinaryAdminMixin:
