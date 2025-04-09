@@ -1,18 +1,15 @@
 import asyncio
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from django.utils.timezone import now
+
 from asgiref.sync import sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.db.models import F
+from django.utils.timezone import now
 
-from socket_service.utils import (
-    update_user_online_status,
-    update_study_time,
-)
-from socket_service.serializers import WebSocketMessageSerializer
+from django.db.models import F
+from django.utils.timezone import now
 
-from core.models import (
-    User,
-)
+from core.models import User, StudySession, User, StudySession, MonthlyLevel
 
 
 class OnlineStatusConsumer(AsyncWebsocketConsumer):
@@ -23,45 +20,56 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
 
         if self.user.is_authenticated:
-            # Add this connection to the user's active connections
+            # Increment active connections counter for this user
             if self.user.id not in self.active_connections:
-                self.active_connections[self.user.id] = set()
-            self.active_connections[self.user.id].add(self.channel_name)
+                self.active_connections[self.user.id] = 1
+            else:
+                self.active_connections[self.user.id] += 1
 
-            # Update online status in database
-            await update_user_online_status(self.user.id, True)
+            # Only update is_online if this is the first connection
+            if self.active_connections[self.user.id] == 1:
+                await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                    is_online=True
+                )
 
             self.session_start = now()
             self.is_active = True
 
-            # Add to groups
             await self.channel_layer.group_add("global_online_users", self.channel_name)
             await self.channel_layer.group_add(
                 f"user_{self.user.id}", self.channel_name
             )
             await self.accept()
 
-            # Broadcast initial online count
             await self.broadcast_online_count()
 
-            # Start auto-update task
             asyncio.create_task(self.auto_update_study_time())
 
         else:
             await self.close()
 
     async def disconnect(self, close_code):
+        print(
+            f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
-            # Remove this connection from user's active connections
+            # Decrement active connections counter
             if self.user.id in self.active_connections:
-                self.active_connections[self.user.id].discard(self.channel_name)
+                self.active_connections[self.user.id] -= 1
+                print(
+                    f"Active connections for user {self.user.id}: {self.active_connections[self.user.id]}"
+                )
 
-                # If no more active connections, update online status
-                if not self.active_connections[self.user.id]:
-                    await update_user_online_status(self.user.id, False)
+                # Only update is_online if this was the last connection
+                if self.active_connections[self.user.id] <= 0:
+                    await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                        is_online=False
+                    )
+                    print(
+                        f"Updating online status for user {self.user.id} to False - all connections closed"
+                    )
                     del self.active_connections[self.user.id]
 
-                    # Broadcast user status update
+                    # Broadcast user status update to all users
                     await self.channel_layer.group_send(
                         "global_online_users",
                         {
@@ -73,16 +81,9 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
             self.is_active = False
 
-            # Update study time if session was started
             if hasattr(self, "session_start"):
-                new_level, new_monthly_time = await update_study_time(
-                    self.user, self.session_start, now()
-                )
+                await self.update_study_time(self.session_start, now())
 
-                if new_level:
-                    await self.send_achievement(new_level, new_monthly_time)
-
-            # Remove from groups
             await self.channel_layer.group_discard(
                 "global_online_users", self.channel_name
             )
@@ -90,37 +91,57 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 f"user_{self.user.id}", self.channel_name
             )
 
-            # Broadcast updated online count
             await self.broadcast_online_count()
 
     async def auto_update_study_time(self):
         while self.is_active:
             await asyncio.sleep(15)
             if self.is_active:
-                new_level, new_monthly_time = await update_study_time(
-                    self.user, self.session_start, now()
-                )
-
-                if new_level:
-                    await self.send_achievement(new_level, new_monthly_time)
-
+                await self.update_study_time(self.session_start, now())
                 self.session_start = now()
 
-    async def send_achievement(self, level, monthly_study_time):
-        await self.send(
-            text_data=json.dumps(
-                WebSocketMessageSerializer(
-                    {
-                        "type": "send_achievement",
-                        "level": level,
-                        "monthly_study_time": monthly_study_time,
-                    }
-                ).data
-            )
+    async def update_study_time(self, session_start, session_end):
+        study_duration = (session_end - session_start).total_seconds() / 3600
+        study_date = session_start.date()
+
+        record, created = await sync_to_async(StudySession.objects.get_or_create)(
+            user=self.user, date=study_date
         )
+
+        if created:
+            record.total_time = study_duration
+            await sync_to_async(record.save)()
+        else:
+            await sync_to_async(StudySession.objects.filter(id=record.id).update)(
+                total_time=F("total_time") + study_duration
+            )
+
+        await sync_to_async(User.objects.filter(id=self.user.id).update)(
+            monthly_study_time=F("monthly_study_time") + study_duration
+        )
+
+        new_monthly_time = self.user.monthly_study_time + study_duration
+        self.user.monthly_study_time = new_monthly_time
+
+        new_level = MonthlyLevel.get_role_from_time(new_monthly_time)
+        if MonthlyLevel.compare_levels(new_level, self.user.monthly_level) > 0:
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(
+                monthly_level=new_level
+            )
+            self.user.monthly_level = new_level
+
+            # Send achievement notification directly to the user
+            await self.send(
+                text_data=json.dumps({
+                    "type": "send_achievement",
+                    "level": new_level,
+                    "monthly_study_time": new_monthly_time,
+                })
+            )
 
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
+
         await self.channel_layer.group_send(
             "global_online_users",
             {"type": "update_online_count", "online_count": online_count},
@@ -129,21 +150,18 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
     async def update_online_count(self, event):
         await self.send(
             text_data=json.dumps(
-                WebSocketMessageSerializer(
-                    {"type": "online_count", "online_count": event["online_count"]}
-                ).data
+                {"type": "online_count", "online_count": event["online_count"]}
             )
         )
 
     async def user_status_update(self, event):
+        """Handle user status update event"""
         await self.send(
             text_data=json.dumps(
-                WebSocketMessageSerializer(
-                    {
-                        "type": "user_status_update",
-                        "user_id": event["user_id"],
-                        "is_online": event["is_online"],
-                    }
-                ).data
+                {
+                    "type": "user_status_update",
+                    "user_id": event["user_id"],
+                    "is_online": event["is_online"],
+                }
             )
         )
