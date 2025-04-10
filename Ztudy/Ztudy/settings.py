@@ -411,7 +411,7 @@ LOGGING = {
         },
     },
 }
-FRONTEND_URL = 'http://localhost:3000'
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 CACHES = {
     'default': {
