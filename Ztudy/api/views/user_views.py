@@ -18,7 +18,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 class UserList(generics.ListAPIView):
-    queryset = User.objects.all()
+    queryset = User.objects.filter(is_staff=False).all()
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['username', 'email', 'is_online']
