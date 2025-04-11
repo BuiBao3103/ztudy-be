@@ -85,7 +85,6 @@ class GoogleLoginCallback(APIView):
             # Process login with specific backend
             if api_settings.SESSION_LOGIN:
                 from allauth.account.auth_backends import AuthenticationBackend
-                backend = AuthenticationBackend()
                 django_login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
 
             # Generate JWT tokens
@@ -94,18 +93,20 @@ class GoogleLoginCallback(APIView):
             # Create redirect response
             redirect_response = redirect(settings.FRONTEND_URL)
 
-            # Get cookie settings from SIMPLE_JWT
+            # Get cookie settings from settings.py
             cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE']
             refresh_cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']
-            cookie_secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']  # This is already set based on DEBUG
+            cookie_secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']
             cookie_httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY']
             cookie_samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
             cookie_path = settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
             cookie_domain = settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            
+            # Calculate expiration times
             access_token_expiration = timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
             refresh_token_expiration = timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME
 
-            # Set access token
+            # Set access token cookie
             if cookie_name:
                 redirect_response.set_cookie(
                     cookie_name,
@@ -118,7 +119,7 @@ class GoogleLoginCallback(APIView):
                     domain=cookie_domain
                 )
 
-            # Set refresh token
+            # Set refresh token cookie
             if refresh_cookie_name:
                 redirect_response.set_cookie(
                     refresh_cookie_name,
@@ -131,6 +132,9 @@ class GoogleLoginCallback(APIView):
                     domain=cookie_domain
                 )
 
+            # Log cookie settings for debugging
+            logger.info(f"Setting cookies with domain: {cookie_domain}, secure: {cookie_secure}, samesite: {cookie_samesite}")
+            
             return redirect_response
 
         except Exception as e:
