@@ -93,47 +93,13 @@ class GoogleLoginCallback(APIView):
             # Create redirect response
             redirect_response = redirect(settings.FRONTEND_URL)
 
-            # Get cookie settings from settings.py
-            cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE']
-            refresh_cookie_name = settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']
-            cookie_secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']
-            cookie_httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY']
-            cookie_samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
-            cookie_path = settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
-            cookie_domain = settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            # Use dj-rest-auth's set_jwt_cookies function to set cookies properly
+            set_jwt_cookies(redirect_response, access_token, refresh_token)
             
-            # Calculate expiration times
-            access_token_expiration = timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
-            refresh_token_expiration = timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME
-
-            # Set access token cookie
-            if cookie_name:
-                redirect_response.set_cookie(
-                    cookie_name,
-                    access_token,
-                    expires=access_token_expiration,
-                    secure=cookie_secure,
-                    httponly=cookie_httponly,
-                    samesite=cookie_samesite,
-                    path=cookie_path,
-                    domain=cookie_domain
-                )
-
-            # Set refresh token cookie
-            if refresh_cookie_name:
-                redirect_response.set_cookie(
-                    refresh_cookie_name,
-                    refresh_token,
-                    expires=refresh_token_expiration,
-                    secure=cookie_secure,
-                    httponly=cookie_httponly,
-                    samesite=cookie_samesite,
-                    path=cookie_path,
-                    domain=cookie_domain
-                )
-
             # Log cookie settings for debugging
-            logger.info(f"Setting cookies with domain: {cookie_domain}, secure: {cookie_secure}, samesite: {cookie_samesite}")
+            logger.info(f"Setting cookies with domain: {settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']}, "
+                       f"secure: {settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']}, "
+                       f"samesite: {settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']}")
             
             return redirect_response
 
