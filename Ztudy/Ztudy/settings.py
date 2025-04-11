@@ -10,43 +10,215 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from celery.schedules import crontab
+import os
+from datetime import timedelta
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+env_path = Path(__file__).resolve().parent.parent / '.env'
+
+if not env_path.exists():
+    raise FileNotFoundError(
+        f".env file is missing. Please create the .env file in the root directory.")
+
+load_dotenv(dotenv_path=env_path)
+
+required_env_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
+
+for var in required_env_vars:
+    if not os.getenv(var):
+        raise ValueError(f"Missing required environment variable: {var}")
+
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=^ul7fpaimnch1e&sn9$^_-akyb%+@z!kakno#fgi-m2@!9g7&'
+# CSRF và HTTPS
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
+CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_PATH = '/'
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_AGE = 31449600
+SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Thêm cấu hình cho các cookie JWT
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_AGE = 86400  # 1 day in seconds
 
-ALLOWED_HOSTS = []
+# JWT Settings
+ACCESS_TOKEN_LIFETIME = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 5))
+REFRESH_TOKEN_LIFETIME = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 7))
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_DOMAIN': None,
+    'AUTH_COOKIE_SECURE': False,
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': None,
+}
+
+# dj-rest-auth settings
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'access_token',
+    'JWT_AUTH_REFRESH_COOKIE': 'refresh_token',
+    'JWT_AUTH_COOKIE_DOMAIN': None,
+    'JWT_AUTH_SECURE': False,
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': None,
+    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
+    'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
+    'OLD_PASSWORD_FIELD_ENABLED': True,
+    'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
+    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'api.serializers.CustomPasswordResetConfirmSerializer',
+    'REGISTER_SERIALIZER': 'api.serializers.CustomRegisterSerializer',
+}
+
+# Cấu hình khác nhau cho môi trường phát triển và sản phẩm
+if DEBUG:
+    # Trong môi trường phát triển, tắt một số ràng buộc bảo mật
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_DOMAIN = None
+    SESSION_COOKIE_DOMAIN = None
+    CSRF_COOKIE_SAMESITE = None
+    SESSION_COOKIE_SAMESITE = None
+    CSRF_COOKIE_PATH = '/'
+    SESSION_COOKIE_PATH = '/'
+    SIMPLE_JWT['AUTH_COOKIE_SECURE'] = False
+    SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = None
+    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = None
+    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
+    REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = None
+    REST_AUTH['JWT_AUTH_SECURE'] = False
+    REST_AUTH['JWT_AUTH_SAMESITE'] = None
+    CORS_ALLOW_ALL_ORIGINS = True
+    
+    # Trong môi trường phát triển, miễn CSRF cho tất cả
+    CSRF_EXEMPT_URLS = [r'^.*$']
+else:
+    # Trong môi trường sản phẩm, tăng cường bảo mật
+    # Đặt tất cả cookie cùng domain cha
+    CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
+    SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
+    CSRF_COOKIE_PATH = '/'
+    SESSION_COOKIE_PATH = '/'
+    SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
+    SIMPLE_JWT['AUTH_COOKIE_SECURE'] = True
+    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = 'None'
+    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
+    REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
+    REST_AUTH['JWT_AUTH_SECURE'] = True
+    REST_AUTH['JWT_AUTH_SAMESITE'] = 'None'
+    
+    # Miễn CSRF chỉ cho các API cần thiết
+    CSRF_EXEMPT_URLS = [
+        r'^/api/v1/auth/',      # Auth endpoints
+        r'^/ws/',               # WebSocket
+        r'^/api/v1/rooms/',     # Room operations
+        r'^/api/v1/users/',     # User operations
+    ]
 
 # Application definition
+AUTH_USER_MODEL = 'core.User'
 
 INSTALLED_APPS = [
+    'corsheaders',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'channels',
+    'core.apps.CoreConfig',
+    'api.apps.ApiConfig',
+    'socket_service.apps.SocketServiceConfig',
+    'ml_service.apps.MlServiceConfig',
+    'admin_panel.apps.AdminPanelConfig',
+    'scheduler.apps.SchedulerConfig',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'drf_yasg',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'dj_rest_auth.registration',
 ]
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'CSRF_COOKIE_DOMAIN': None,
+    'CSRF_COOKIE_SAMESITE': None,
+    'CSRF_COOKIE_SECURE': False,
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'Ztudy.urls'
@@ -54,7 +226,7 @@ ROOT_URLCONF = 'Ztudy.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,55 +241,185 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Ztudy.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'your_database_name'),
+        'USER': os.getenv('DB_USER', 'your_username'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'your_password'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'use_unicode': True,
+        },
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    # },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = False
 
 USE_I18N = True
 
-USE_TZ = True
-
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATIC_URL = 'static/'
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# django.contrib.sites
+SITE_ID = 1
+
+# Django Allauth settings
+ACCOUNT_LOGIN_METHODS = {"email"}  # Use Email / Password authentication
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_ADAPTER = 'api.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'api.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_STORE_TOKENS = True
+
+# Django SMTP
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = os.getenv("EMAIL_PORT", 587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+
+# Google OAuth
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_CALLBACK_URL = os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
+BASE_URL = os.getenv("BASE_URL")
+# django-allauth (social)
+# Authenticate if local account with this email address already exists
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+# Connect local account and social account if local account with that email address already exists
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': GOOGLE_OAUTH_CLIENT_ID,
+            'secret': GOOGLE_OAUTH_CLIENT_SECRET,
+            'key': ''
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
+ASGI_APPLICATION = 'Ztudy.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
+    'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
+}
+
+# settings.py
+LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json', 'pickle']  # Chấp nhận cả JSON và pickle tạm thời
+CELERY_TASK_SERIALIZER = 'json'   # Vẫn sử dụng JSON cho task mới
+CELERY_RESULT_SERIALIZER = 'json' # Vẫn sử dụng JSON cho kết quả
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
+CELERY_IMPORTS = (
+    'scheduler.leaderboard_tasks',
+    'scheduler.monthly_tasks',
+)
+CELERY_BEAT_SCHEDULE = {
+    'update_leaderboards': {
+        'task': 'scheduler.leaderboard_tasks.update_leaderboards',
+        'schedule': timedelta(minutes=LEADERBOARD_RESET_INTERVAL),
+        'options': {'expires': (LEADERBOARD_RESET_INTERVAL - 1) * 60}
+    },
+    'reset_monthly_study_time': {
+        'task': 'scheduler.monthly_tasks.reset_monthly_study_time',
+        'schedule': crontab(minute=0, hour=0, day_of_month=1)
+    },
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Agora credentials
+AGORA_APP_ID = os.getenv("AGORA_APP_ID")
+AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE")
