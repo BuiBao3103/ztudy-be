@@ -42,8 +42,8 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.accept()
 
             await self.broadcast_online_count()
-
-            asyncio.create_task(self.auto_update_study_time())
+            if not self.user.is_staff:
+                asyncio.create_task(self.auto_update_study_time())
 
         else:
             await self.close()
