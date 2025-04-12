@@ -89,6 +89,18 @@ urlpatterns = [
         views.BackgroundVideoTypeRetrieveUpdateDestroy.as_view(),
         name="background-video-type-view-detail",
     ),
+    path(
+        "user-favorite-videos/",
+        views.UserFavoriteVideoListCreate.as_view(),
+        name="user-favorite-video-view-create"),
+    path(
+        "user-favorite-videos/<int:pk>/",
+        views.UserFavoriteVideoRetrieveUpdateDestroy.as_view(),
+        name="user-favorite-video-view-detail"),
+    path(
+        "user-favorite-videos/<int:pk>/upload/",
+        views.UploadUserFavoriteVideoView.as_view(),
+        name="user-favorite-video-upload"),
     # Session Goal URLs
     path(
         "session-goals/",

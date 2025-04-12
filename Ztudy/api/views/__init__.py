@@ -4,6 +4,9 @@ from .background_video_views import (
     UploadBackgroundVideoView,
     BackgroundVideoTypeListCreate,
     BackgroundVideoTypeRetrieveUpdateDestroy,
+    UserFavoriteVideoListCreate,
+    UserFavoriteVideoRetrieveUpdateDestroy,
+    UploadUserFavoriteVideoView,
 )
 from .google_views import GoogleLogin, GoogleLoginCallback, LoginPage
 from .motivational_quote_views import (

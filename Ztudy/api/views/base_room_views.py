@@ -43,4 +43,7 @@ class RoomParticipantListCreate(BaseRoomView, BaseListCreateView):
 class RoomParticipantRetrieveUpdateDestroy(BaseRoomView, BaseRetrieveUpdateDestroyView):
     queryset = RoomParticipant.objects.all()
     serializer_class = RoomParticipantSerializer
-    permit_list_expands = ["room", "user"] 
+    permit_list_expands = ["room", "user"]
+
+
+class 
