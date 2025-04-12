@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,8 @@ class GoogleLoginCallback(APIView):
                 return redirect(f"{settings.FRONTEND_URL}?error=token_error")
 
             # Get user info from Google
-            user_info = self.get_google_user_info(token_response.get('access_token'))
+            user_info = self.get_google_user_info(
+                token_response.get('access_token'))
             if not user_info:
                 logger.error("Failed to get Google user info")
                 return redirect(f"{settings.FRONTEND_URL}?error=user_info_error")
@@ -53,7 +55,7 @@ class GoogleLoginCallback(APIView):
             # Create or update user
             User = get_user_model()
             email = user_info['email']
-            
+
             try:
                 # Try to get existing user by email
                 user = User.objects.get(email=email)
@@ -66,7 +68,7 @@ class GoogleLoginCallback(APIView):
                     avatar="https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg"
                 )
                 logger.info(f"Created new user: {email}")
-                
+
                 # Create EmailAddress record
                 from allauth.account.models import EmailAddress
                 EmailAddress.objects.create(
@@ -90,7 +92,8 @@ class GoogleLoginCallback(APIView):
             # Process login with specific backend
             if api_settings.SESSION_LOGIN:
                 from allauth.account.auth_backends import AuthenticationBackend
-                django_login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
+                django_login(
+                    request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
                 logger.info(f"User logged in via session: {email}")
 
             # Generate JWT tokens
@@ -98,20 +101,34 @@ class GoogleLoginCallback(APIView):
             logger.info(f"Generated JWT tokens for user: {email}")
 
             # Create redirect response
-            redirect_response = redirect(settings.FRONTEND_URL)
-            
+            redirect_response = redirect(
+                settings.FRONTEND_URL+"/google-callback")
+
             # Log cookie settings before setting
             logger.info(f"Cookie settings - Domain: {settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']}, "
-                       f"Secure: {settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']}, "
-                       f"SameSite: {settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']}, "
-                       f"Path: {settings.SIMPLE_JWT['AUTH_COOKIE_PATH']}")
-            
+                        f"Secure: {settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']}, "
+                        f"SameSite: {settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']}, "
+                        f"Path: {settings.SIMPLE_JWT['AUTH_COOKIE_PATH']}")
+
             # Use dj-rest-auth's set_jwt_cookies function to set cookies properly
             set_jwt_cookies(redirect_response, access_token, refresh_token)
-            
+
+            # Set isLoggedIn cookie with same expiration as access token
+            access_token_expiry = datetime.fromtimestamp(jwt.decode(access_token, options={"verify_signature": False})['exp'])
+            redirect_response.set_cookie(
+                'isLoggedIn',
+                '1',
+                expires=access_token_expiry,
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'],
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=False,
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
+            )
+
             # Log the response headers for debugging
             logger.info(f"Response headers: {redirect_response.headers}")
-            
+
             return redirect_response
 
         except Exception as e:
@@ -128,7 +145,8 @@ class GoogleLoginCallback(APIView):
                 'redirect_uri': settings.GOOGLE_OAUTH_CALLBACK_URL,
                 'grant_type': 'authorization_code'
             }
-            logger.info(f"Requesting Google token with redirect_uri: {settings.GOOGLE_OAUTH_CALLBACK_URL}")
+            logger.info(
+                f"Requesting Google token with redirect_uri: {settings.GOOGLE_OAUTH_CALLBACK_URL}")
             response = requests.post(token_url, data=data)
             if response.status_code != 200:
                 logger.error(f"Google token error: {response.text}")
