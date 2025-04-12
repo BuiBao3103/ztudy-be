@@ -114,17 +114,21 @@ class GoogleLoginCallback(APIView):
             set_jwt_cookies(redirect_response, access_token, refresh_token)
 
             # Set isLoggedIn cookie with same expiration as access token
-            access_token_expiry = datetime.fromtimestamp(jwt.decode(access_token, options={"verify_signature": False})['exp'])
-            redirect_response.set_cookie(
-                'isLoggedIn',
-                '1',
-                expires=access_token_expiry,
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'],
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
-                httponly=False,
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-                path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
-            )
+            try:
+                # Get the expiration time from JWT settings
+                access_token_expiry = datetime.now() + jwt_settings.ACCESS_TOKEN_LIFETIME
+                redirect_response.set_cookie(
+                    'isLoggedIn',
+                    '1',
+                    expires=access_token_expiry,
+                    domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'],
+                    secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                    httponly=False,
+                    samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                    path=settings.SIMPLE_JWT['AUTH_COOKIE_PATH']
+                )
+            except Exception as e:
+                logger.error(f"Error setting isLoggedIn cookie: {str(e)}")
 
             # Log the response headers for debugging
             logger.info(f"Response headers: {redirect_response.headers}")
