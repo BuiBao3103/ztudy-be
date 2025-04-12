@@ -37,20 +37,20 @@ class GoogleLoginCallback(APIView):
             code = request.GET.get('code')
             if not code:
                 logger.error("No code received in Google callback")
-                return redirect(f"{settings.FRONTEND_URL}?error=no_code")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=no_code")
 
             # Exchange code for tokens
             token_response = self.get_google_token(code)
             if not token_response:
                 logger.error("Failed to get Google token")
-                return redirect(f"{settings.FRONTEND_URL}?error=token_error")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=token_error")
 
             # Get user info from Google
             user_info = self.get_google_user_info(
                 token_response.get('access_token'))
             if not user_info:
                 logger.error("Failed to get Google user info")
-                return redirect(f"{settings.FRONTEND_URL}?error=user_info_error")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=user_info_error")
 
             # Create or update user
             User = get_user_model()
@@ -101,8 +101,7 @@ class GoogleLoginCallback(APIView):
             logger.info(f"Generated JWT tokens for user: {email}")
 
             # Create redirect response
-            redirect_response = redirect(
-                settings.FRONTEND_URL+"/google-callback")
+            redirect_response = redirect(f"{settings.FRONTEND_URL}/login-google?status=success")
 
             # Log cookie settings before setting
             logger.info(f"Cookie settings - Domain: {settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']}, "
@@ -120,7 +119,7 @@ class GoogleLoginCallback(APIView):
 
         except Exception as e:
             logger.exception("Error in Google callback")
-            return redirect(f"{settings.FRONTEND_URL}?error=login_failed")
+            return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=login_failed")
 
     def get_google_token(self, code):
         try:
