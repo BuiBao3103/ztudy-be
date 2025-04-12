@@ -197,7 +197,8 @@ class SessionGoal(models.Model):
         default=SessionGoalsStatus.OPEN,
     )
 
-    user = models.ForeignKey("User", on_delete=models.CASCADE, related_name="goals")
+    user = models.ForeignKey(
+        "User", on_delete=models.CASCADE, related_name="goals")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -225,6 +226,16 @@ class User(SoftDeleteModel, AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class UserFavoriteVideo(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='favorite_videos')
+    youtube_url = models.URLField()
+    image = CloudinaryField("image", null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.youtube_url}"
 
 
 class MotivationalQuote(models.Model):
@@ -292,7 +303,8 @@ class RoomParticipant(models.Model):
         User, on_delete=models.CASCADE, related_name="rooms_joined"
     )
     joined_at = models.DateTimeField(auto_now_add=True)
-    role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
+    role = models.CharField(
+        max_length=10, choices=Role.choices, default=Role.USER)
     is_out = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)
 
@@ -301,7 +313,8 @@ class RoomParticipant(models.Model):
 
 
 class Interest(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="interests")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="interests")
     category = models.ForeignKey(
         RoomCategory, on_delete=models.CASCADE, related_name="user_interests"
     )
@@ -340,4 +353,4 @@ class StudySession(models.Model):
     total_time = models.FloatField(default=0)
 
     def __str__(self):
-        return f"{self.user.email} - {self.date} - {self.total_time} hours" 
+        return f"{self.user.email} - {self.date} - {self.total_time} hours"

@@ -22,8 +22,8 @@ from rest_flex_fields import FlexFieldsModelSerializer
 from rest_framework import serializers
 
 from core.models import (BackgroundVideoType, BackgroundVideo,
-                     SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
-                     Room, RoomParticipant, Interest, StudySession, RoomType, Role)
+                         SessionGoal, User, MotivationalQuote, Sound, RoomCategory,
+                         Room, RoomParticipant, Interest, StudySession, RoomType, Role, UserFavoriteVideo)
 from .utils import generate_unique_code, encode_emoji, decode_emoji
 
 User = get_user_model()
@@ -38,14 +38,16 @@ class BackgroundVideoTypeSerializer(serializers.ModelSerializer):
         if "name" in validated_data:
             validated_data["name"] = encode_emoji(validated_data["name"])
         if "description" in validated_data:
-            validated_data["description"] = encode_emoji(validated_data["description"])
+            validated_data["description"] = encode_emoji(
+                validated_data["description"])
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         if "name" in validated_data:
             validated_data["name"] = encode_emoji(validated_data["name"])
         if "description" in validated_data:
-            validated_data["description"] = encode_emoji(validated_data["description"])
+            validated_data["description"] = encode_emoji(
+                validated_data["description"])
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
@@ -70,6 +72,10 @@ class BackgroundVideoUploadSerializer(serializers.Serializer):
     image = serializers.ImageField()
 
 
+class UserFavoriteVideoUploadSerializer(serializers.Serializer):
+    image = serializers.ImageField()
+
+
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
 
@@ -85,6 +91,15 @@ class UserSerializer(serializers.ModelSerializer):
             "groups",
             "user_permissions",
         ]
+
+
+class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = UserFavoriteVideo
+        fields = "__all__"
+        expandable_fields = {"user": UserSerializer}
 
 
 class AvatarUploadSerializer(serializers.Serializer):
@@ -164,15 +179,18 @@ class RoomSerializer(FlexFieldsModelSerializer):
 
     def create(self, validated_data):
         if "code_invite" not in validated_data or not validated_data["code_invite"]:
-            validated_data["code_invite"] = generate_unique_code(Room, "code_invite", 6)
+            validated_data["code_invite"] = generate_unique_code(
+                Room, "code_invite", 6)
 
         if validated_data['type'] == RoomType.PUBLIC:
             if 'category' in validated_data and validated_data['category']:
-                category = RoomCategory.objects.get(id=validated_data['category'].id)
+                category = RoomCategory.objects.get(
+                    id=validated_data['category'].id)
                 validated_data['thumbnail'] = category.thumbnail
             else:
                 # For public rooms, category is required
-                raise serializers.ValidationError({"category": "Category is required for public rooms"})
+                raise serializers.ValidationError(
+                    {"category": "Category is required for public rooms"})
 
         room = super().create(validated_data)
 
@@ -384,7 +402,8 @@ class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
             # Validate passwords
             if attrs["new_password1"] != attrs["new_password2"]:
                 raise ValidationError(
-                    {"new_password2": ["The two password fields didn't match."]}
+                    {"new_password2": [
+                        "The two password fields didn't match."]}
                 )
 
             return attrs
@@ -393,7 +412,8 @@ class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
 
     def save(self):
         if not self.user:
-            raise ValidationError({"error": "No user found for password reset"})
+            raise ValidationError(
+                {"error": "No user found for password reset"})
 
         # Set the new password
         self.user.set_password(self.validated_data["new_password1"])
