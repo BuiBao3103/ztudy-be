@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
@@ -233,6 +234,8 @@ class UserFavoriteVideo(models.Model):
         User, on_delete=models.CASCADE, related_name='favorite_videos')
     youtube_url = models.URLField()
     image = CloudinaryField("image", null=True, blank=True)
+    name = models.CharField(max_length=255, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.youtube_url}"

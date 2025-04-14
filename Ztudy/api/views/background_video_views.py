@@ -10,7 +10,10 @@ import imghdr
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.shortcuts import get_object_or_404
-
+import re
+import urllib.request
+import urllib.parse
+import json
 
 class BackgroundVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = BackgroundVideo.objects.all()
@@ -74,11 +77,45 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
     filterset_fields = ['user']
     permit_list_expands = ['user']
 
+    def perform_create(self, serializer):
+        youtube_url = self.request.data.get('youtube_url', '').strip()
+        name = self.request.data.get('name', '').strip()
+
+        video_id = self.extract_video_id(youtube_url)
+        if video_id:
+            title = self.get_youtube_title(video_id)
+            name = title or f"Video_{video_id}"
+
+        serializer.save(name=name)
+
+    def extract_video_id(self, url):
+        match = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
+        return match.group(1) if match else ""
+
+    def get_youtube_title(self, video_id):
+        oembed_url = "https://www.youtube.com/oembed"
+        params = {
+            "format": "json",
+            "url": f"https://www.youtube.com/watch?v={video_id}"
+        }
+        query_string = urllib.parse.urlencode(params)
+        full_url = f"{oembed_url}?{query_string}"
+
+        try:
+            with urllib.request.urlopen(full_url) as response:
+                data = json.loads(response.read().decode())
+                return data.get("title", None)
+        except Exception as e:
+            print("Error fetching YouTube title:", e)
+            return None
+
+
 class UserFavoriteVideoRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):
     queryset = UserFavoriteVideo.objects.all()
     serializer_class = UserFavoriteVideoSerializer
     permit_list_expands = ['user']
-    
+
+
 class UploadUserFavoriteVideoView(generics.CreateAPIView):
     queryset = UserFavoriteVideo.objects.all()
     parser_classes = (MultiPartParser, FormParser)
@@ -90,7 +127,8 @@ class UploadUserFavoriteVideoView(generics.CreateAPIView):
         operation_description="Upload an image to Cloudinary",
     )
     def post(self, request, *args, **kwargs):
-        user_favorite_video = get_object_or_404(UserFavoriteVideo, id=kwargs['pk'])
+        user_favorite_video = get_object_or_404(
+            UserFavoriteVideo, id=kwargs['pk'])
         file = request.FILES.get('image')
 
         if not file:
