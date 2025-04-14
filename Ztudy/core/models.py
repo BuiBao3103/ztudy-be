@@ -2,6 +2,7 @@ from django.db import models
 from django_softdelete.models import SoftDeleteModel
 from django.contrib.auth.models import AbstractUser, UserManager
 from cloudinary.models import CloudinaryField
+from django.utils import timezone
 
 from core.utils import decode_emoji
 
@@ -305,8 +306,14 @@ class RoomParticipant(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
     role = models.CharField(
         max_length=10, choices=Role.choices, default=Role.USER)
+    # is_out = True khi user đã rời khỏi phòng nhưng vẫn giữ record để tracking
     is_out = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)
+    
+    # Video call related fields - chỉ giữ những trường cơ bản nhất
+    is_camera_on = models.BooleanField(default=False)
+    is_microphone_on = models.BooleanField(default=False)
+    peer_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.email} in {self.room.name}"
