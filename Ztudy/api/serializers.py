@@ -95,6 +95,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)
+    name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = UserFavoriteVideo
