@@ -233,7 +233,7 @@ class UserFavoriteVideo(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='favorite_videos')
     youtube_url = models.URLField(unique=True)
-    image = CloudinaryField("image", null=True, blank=True)
+    image = models.URLField(max_length=500, null=True, blank=True) 
     name = models.CharField(max_length=255, default="")
     author_name = models.CharField(max_length=255, default="", blank=True)
     author_url = models.URLField(max_length=500, default="", blank=True)
