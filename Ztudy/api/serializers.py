@@ -102,6 +102,22 @@ class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
         fields = "__all__"
         expandable_fields = {"user": UserSerializer}
 
+    def validate_youtube_url(self, value):
+        user = self.context['request'].user
+        if self.instance is None:
+            # Create
+            if UserFavoriteVideo.objects.filter(user=user, youtube_url=value).exists():
+                raise serializers.ValidationError("You have already added this video to your favorites.")
+        else:
+            # Update
+            if (
+                self.instance.youtube_url != value and
+                UserFavoriteVideo.objects.filter(user=user, youtube_url=value).exists()
+            ):
+                raise serializers.ValidationError("You have already added this video to your favorites.")
+        return value
+
+
 
 class AvatarUploadSerializer(serializers.Serializer):
     avatar = serializers.ImageField()
