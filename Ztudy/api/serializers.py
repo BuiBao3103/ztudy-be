@@ -96,6 +96,8 @@ class UserSerializer(serializers.ModelSerializer):
 class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)
     name = serializers.CharField(required=False, allow_blank=True)
+    author_name = serializers.CharField(required=False, allow_blank=True)
+    author_url = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = UserFavoriteVideo
@@ -107,16 +109,18 @@ class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
         if self.instance is None:
             # Create
             if UserFavoriteVideo.objects.filter(user=user, youtube_url=value).exists():
-                raise serializers.ValidationError("You have already added this video to your favorites.")
+                raise serializers.ValidationError(
+                    "You have already added this video to your favorites.")
         else:
             # Update
             if (
                 self.instance.youtube_url != value and
-                UserFavoriteVideo.objects.filter(user=user, youtube_url=value).exists()
+                UserFavoriteVideo.objects.filter(
+                    user=user, youtube_url=value).exists()
             ):
-                raise serializers.ValidationError("You have already added this video to your favorites.")
+                raise serializers.ValidationError(
+                    "You have already added this video to your favorites.")
         return value
-
 
 
 class AvatarUploadSerializer(serializers.Serializer):

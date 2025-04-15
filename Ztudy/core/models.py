@@ -235,6 +235,8 @@ class UserFavoriteVideo(models.Model):
     youtube_url = models.URLField(unique=True)
     image = CloudinaryField("image", null=True, blank=True)
     name = models.CharField(max_length=255, default="")
+    author_name = models.CharField(max_length=255, default="", blank=True)
+    author_url = models.URLField(max_length=500, default="", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
