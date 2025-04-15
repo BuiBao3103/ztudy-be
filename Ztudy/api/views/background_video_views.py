@@ -98,8 +98,8 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
             name=name,
             author_name=author_name,
             author_url=author_url,
-            image = image
-    )
+            image=image
+        )
 
     def extract_video_id(self, url):
         match = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
@@ -121,7 +121,7 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
                     "title": data.get("title", ""),
                     "author_name": data.get("author_name", ""),
                     "author_url": data.get("author_url", ""),
-                    "thumbnail_url": data.get("thumbnail_url",""),
+                    "thumbnail_url": data.get("thumbnail_url", ""),
                 }
         except Exception as e:
             print("Error fetching YouTube metadata:", e)
