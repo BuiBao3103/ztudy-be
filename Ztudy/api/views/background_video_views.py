@@ -92,7 +92,7 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
             name = name or metadata["title"] or f"Video_{video_id}"
             author_name = metadata["author_name"]
             author_url = metadata["author_url"]
-            image = metada["thumbnail_url"]
+            image = metadata["thumbnail_url"]
 
         serializer.save(
             name=name,
