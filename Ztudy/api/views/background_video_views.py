@@ -15,6 +15,7 @@ import urllib.request
 import urllib.parse
 import json
 
+
 class BackgroundVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = BackgroundVideo.objects.all()
     serializer_class = BackgroundVideoSerializer
@@ -82,17 +83,26 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
         name = self.request.data.get('name', '').strip()
 
         video_id = self.extract_video_id(youtube_url)
-        if video_id:
-            title = self.get_youtube_title(video_id)
-            name = title or f"Video_{video_id}"
+        author_name = ""
+        author_url = ""
 
-        serializer.save(name=name)
+        if video_id:
+            metadata = self.get_youtube_metadata(video_id)
+            name = name or metadata["title"] or f"Video_{video_id}"
+            author_name = metadata["author_name"]
+            author_url = metadata["author_url"]
+
+        serializer.save(
+            name=name,
+            author_name=author_name,
+            author_url=author_url
+    )
 
     def extract_video_id(self, url):
         match = re.search(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})", url)
         return match.group(1) if match else ""
 
-    def get_youtube_title(self, video_id):
+    def get_youtube_metadata(self, video_id):
         oembed_url = "https://www.youtube.com/oembed"
         params = {
             "format": "json",
@@ -104,10 +114,18 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
         try:
             with urllib.request.urlopen(full_url) as response:
                 data = json.loads(response.read().decode())
-                return data.get("title", None)
+                return {
+                    "title": data.get("title", ""),
+                    "author_name": data.get("author_name", ""),
+                    "author_url": data.get("author_url", ""),
+                }
         except Exception as e:
-            print("Error fetching YouTube title:", e)
-            return None
+            print("Error fetching YouTube metadata:", e)
+            return {
+                "title": "",
+                "author_name": "",
+                "author_url": "",
+            }
 
 
 class UserFavoriteVideoRetrieveUpdateDestroy(FlexFieldsMixin, SwaggerExpandMixin, BaseRetrieveUpdateDestroyView):
