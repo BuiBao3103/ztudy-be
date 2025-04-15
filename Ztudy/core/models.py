@@ -232,7 +232,7 @@ class User(SoftDeleteModel, AbstractUser):
 class UserFavoriteVideo(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='favorite_videos')
-    youtube_url = models.URLField()
+    youtube_url = models.URLField(unique=True)
     image = CloudinaryField("image", null=True, blank=True)
     name = models.CharField(max_length=255, default="")
     created_at = models.DateTimeField(auto_now_add=True)
