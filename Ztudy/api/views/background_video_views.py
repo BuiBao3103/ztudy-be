@@ -117,6 +117,7 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
         try:
             with urllib.request.urlopen(full_url) as response:
                 data = json.loads(response.read().decode())
+                print(data)
                 return {
                     "title": data.get("title", ""),
                     "author_name": data.get("author_name", ""),
@@ -129,6 +130,7 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
                 "title": "",
                 "author_name": "",
                 "author_url": "",
+                "thumbnail_url": ""
             }
 
 
