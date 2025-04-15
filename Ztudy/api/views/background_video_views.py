@@ -85,17 +85,20 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
         video_id = self.extract_video_id(youtube_url)
         author_name = ""
         author_url = ""
+        image = ""
 
         if video_id:
             metadata = self.get_youtube_metadata(video_id)
             name = name or metadata["title"] or f"Video_{video_id}"
             author_name = metadata["author_name"]
             author_url = metadata["author_url"]
+            image = metada["thumbnail_url"]
 
         serializer.save(
             name=name,
             author_name=author_name,
-            author_url=author_url
+            author_url=author_url,
+            image = image
     )
 
     def extract_video_id(self, url):
@@ -118,6 +121,7 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
                     "title": data.get("title", ""),
                     "author_name": data.get("author_name", ""),
                     "author_url": data.get("author_url", ""),
+                    "thumbnail_url": data.get("thumbnail_url",""),
                 }
         except Exception as e:
             print("Error fetching YouTube metadata:", e)
