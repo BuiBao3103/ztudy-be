@@ -15,6 +15,8 @@ from core.models import User, StudySession, User, StudySession, MonthlyLevel
 class OnlineStatusConsumer(AsyncWebsocketConsumer):
     # Dictionary to keep track of active connections per user
     active_connections = {}
+    # Dictionary to track which connection is updating study time for each user
+    study_time_updaters = {}
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -23,8 +25,23 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             # Increment active connections counter for this user
             if self.user.id not in self.active_connections:
                 self.active_connections[self.user.id] = 1
+                # This is the first connection for this user, so it will track study time
+                self.study_time_updaters[self.user.id] = self.channel_name
+                self.is_study_time_updater = True
             else:
                 self.active_connections[self.user.id] += 1
+
+                # Check if we need to reassign the study time updater
+                if (
+                    self.user.id in self.study_time_updaters
+                    and self.study_time_updaters[self.user.id] is None
+                ):
+                    # The previous study time updater connection was closed, assign this connection as the new updater
+                    self.study_time_updaters[self.user.id] = self.channel_name
+                    self.is_study_time_updater = True
+                else:
+                    # This is not the first connection, so it won't track study time
+                    self.is_study_time_updater = False
 
             # Only update is_online if this is the first connection
             if self.active_connections[self.user.id] == 1:
@@ -42,15 +59,15 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
             await self.accept()
 
             await self.broadcast_online_count()
-            if not self.user.is_staff:
+            # Only start auto_update_study_time for the designated updater connection
+            if not self.user.is_staff and self.is_study_time_updater:
                 asyncio.create_task(self.auto_update_study_time())
 
         else:
             await self.close()
 
     async def disconnect(self, close_code):
-        print(
-            f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
+        print(f"OnlineStatusConsumer disconnect called with close_code: {close_code}")
         if self.user.is_authenticated:
             # Decrement active connections counter
             if self.user.id in self.active_connections:
@@ -68,6 +85,9 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                         f"Updating online status for user {self.user.id} to False - all connections closed"
                     )
                     del self.active_connections[self.user.id]
+                    # Remove the study time updater reference for this user
+                    if self.user.id in self.study_time_updaters:
+                        del self.study_time_updaters[self.user.id]
 
                     # Broadcast user status update to all users
                     await self.channel_layer.group_send(
@@ -78,10 +98,23 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                             "is_online": False,
                         },
                     )
+                # If this was the study time updater connection but not the last connection,
+                # assign study time tracking to another connection
+                elif (
+                    self.is_study_time_updater
+                    and self.active_connections[self.user.id] > 0
+                ):
+                    # This will be handled on the next connect from another tab
+                    self.study_time_updaters[self.user.id] = None
 
             self.is_active = False
 
-            if hasattr(self, "session_start"):
+            # Only update study time for the connection that was tracking it and not staff users
+            if (
+                hasattr(self, "session_start")
+                and self.is_study_time_updater
+                and not self.user.is_staff
+            ):
                 await self.update_study_time(self.session_start, now())
 
             await self.channel_layer.group_discard(
@@ -101,6 +134,10 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
                 self.session_start = now()
 
     async def update_study_time(self, session_start, session_end):
+        # Skip updating study time for staff users
+        if self.user.is_staff:
+            return None, self.user.monthly_study_time
+
         study_duration = (session_end - session_start).total_seconds() / 3600
         study_date = session_start.date()
 
@@ -132,12 +169,16 @@ class OnlineStatusConsumer(AsyncWebsocketConsumer):
 
             # Send achievement notification directly to the user
             await self.send(
-                text_data=json.dumps({
-                    "type": "send_achievement",
-                    "level": new_level,
-                    "monthly_study_time": new_monthly_time,
-                })
+                text_data=json.dumps(
+                    {
+                        "type": "send_achievement",
+                        "level": new_level,
+                        "monthly_study_time": new_monthly_time,
+                    }
+                )
             )
+
+        return None, new_monthly_time
 
     async def broadcast_online_count(self):
         online_count = await sync_to_async(User.objects.filter(is_online=True).count)()
