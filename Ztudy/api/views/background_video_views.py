@@ -89,7 +89,6 @@ class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListC
 
         if video_id:
             metadata = self.get_youtube_metadata(video_id)
-            print(metadata)
             name = name or metadata["title"] or f"Video_{video_id}"
             author_name = metadata["author_name"]
             author_url = metadata["author_url"]
