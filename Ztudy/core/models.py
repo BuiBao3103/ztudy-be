@@ -232,7 +232,7 @@ class User(SoftDeleteModel, AbstractUser):
 class UserFavoriteVideo(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='favorite_videos')
-    youtube_url = models.URLField(unique=True)
+    youtube_url = models.URLField()
     image = models.URLField(max_length=500, null=True, blank=True) 
     name = models.CharField(max_length=255, default="")
     author_name = models.CharField(max_length=255, default="", blank=True)
@@ -241,6 +241,14 @@ class UserFavoriteVideo(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.youtube_url}"
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'youtube_url'],
+                name='unique_user_youtube_url'
+            )
+        ]
 
 
 class MotivationalQuote(models.Model):

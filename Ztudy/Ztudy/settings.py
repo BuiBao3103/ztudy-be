@@ -17,6 +17,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+# Load environment variables from .env file
 env_path = Path(__file__).resolve().parent.parent / '.env'
 
 if not env_path.exists():
@@ -25,6 +26,7 @@ if not env_path.exists():
 
 load_dotenv(dotenv_path=env_path)
 
+# Check required environment variables
 required_env_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
 
 for var in required_env_vars:
@@ -39,8 +41,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+# CORS settings - Read from .env
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://ztudy.io.vn',
+    'https://api.ztudy.io.vn',
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -55,14 +65,21 @@ CORS_ALLOW_HEADERS = [
 ]
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
-# CSRF và HTTPS
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = ['https://api.ztudy.io.vn', 'https://ztudy.io.vn']
-CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
-SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_USE_SESSIONS = False
+# CSRF settings - Read from .env
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+CSRF_TRUSTED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://ztudy.io.vn',
+    'https://api.ztudy.io.vn',
+]
+CSRF_COOKIE_DOMAIN = None
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_PATH = '/'
 CSRF_COOKIE_NAME = 'csrftoken'
@@ -74,7 +91,6 @@ USE_X_FORWARDED_HOST = True
 
 # Thêm cấu hình cho các cookie JWT
 SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_AGE = 86400  # 1 day in seconds
 
 # JWT Settings
@@ -93,7 +109,7 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SECURE': False,
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': None,
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 # dj-rest-auth settings
@@ -104,9 +120,9 @@ REST_AUTH = {
     'JWT_AUTH_COOKIE_DOMAIN': None,
     'JWT_AUTH_SECURE': False,
     'JWT_AUTH_HTTPONLY': True,
-    'JWT_AUTH_SAMESITE': None,
-    'JWT_AUTH_COOKIE_USE_CSRF': False,  # Disable CSRF for JWT auth
-    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,  # Disable CSRF enforcement
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_COOKIE_USE_CSRF': False,
+    'JWT_AUTH_COOKIE_ENFORCE_CSRF_ON_UNAUTHENTICATED': False,
     'USER_DETAILS_SERIALIZER': 'api.serializers.CustomUserDetailsSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'PASSWORD_RESET_SERIALIZER': 'api.serializers.CustomPasswordResetSerializer',
@@ -116,29 +132,39 @@ REST_AUTH = {
 
 # Cấu hình khác nhau cho môi trường phát triển và sản phẩm
 if DEBUG:
-    # Trong môi trường phát triển, tắt một số ràng buộc bảo mật
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_DOMAIN = None
     SESSION_COOKIE_DOMAIN = None
-    CSRF_COOKIE_SAMESITE = None
-    SESSION_COOKIE_SAMESITE = None
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_PATH = '/'
     SESSION_COOKIE_PATH = '/'
     SIMPLE_JWT['AUTH_COOKIE_SECURE'] = False
     SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = None
-    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = None
-    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
+    SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = 'Lax'
     REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = None
     REST_AUTH['JWT_AUTH_SECURE'] = False
-    REST_AUTH['JWT_AUTH_SAMESITE'] = None
-    CORS_ALLOW_ALL_ORIGINS = True
-    
-    # Trong môi trường phát triển, miễn CSRF cho tất cả
+    REST_AUTH['JWT_AUTH_SAMESITE'] = 'Lax'
+    # Đọc CORS và CSRF từ .env, nhưng đảm bảo bao gồm localhost và 127.0.0.1
+    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://ztudy.io.vn',
+        'https://api.ztudy.io.vn',
+    ]
+    CSRF_TRUSTED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if os.getenv("CORS_ALLOWED_ORIGINS") else [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://ztudy.io.vn',
+        'https://api.ztudy.io.vn',
+    ]
     CSRF_EXEMPT_URLS = [r'^.*$']
 else:
-    # Trong môi trường sản phẩm, tăng cường bảo mật
-    # Đặt tất cả cookie cùng domain cha
     CSRF_COOKIE_DOMAIN = '.ztudy.io.vn'
     SESSION_COOKIE_DOMAIN = '.ztudy.io.vn'
     CSRF_COOKIE_PATH = '/'
@@ -146,17 +172,16 @@ else:
     SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
     SIMPLE_JWT['AUTH_COOKIE_SECURE'] = True
     SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = 'None'
-    SIMPLE_JWT['AUTH_COOKIE_PATH'] = '/'
     REST_AUTH['JWT_AUTH_COOKIE_DOMAIN'] = '.ztudy.io.vn'
     REST_AUTH['JWT_AUTH_SECURE'] = True
     REST_AUTH['JWT_AUTH_SAMESITE'] = 'None'
-    
-    # Miễn CSRF chỉ cho các API cần thiết
+    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://ztudy.io.vn,https://api.ztudy.io.vn").split(",")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://ztudy.io.vn,https://api.ztudy.io.vn").split(",")
     CSRF_EXEMPT_URLS = [
-        r'^/api/v1/auth/',      # Auth endpoints
-        r'^/ws/',               # WebSocket
-        r'^/api/v1/rooms/',     # Room operations
-        r'^/api/v1/users/',     # User operations
+        r'^/api/v1/auth/',
+        r'^/ws/',
+        r'^/api/v1/rooms/',
+        r'^/api/v1/users/',
     ]
 
 # Application definition
@@ -204,15 +229,12 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    'CSRF_COOKIE_DOMAIN': None,
-    'CSRF_COOKIE_SAMESITE': None,
-    'CSRF_COOKIE_SECURE': False,
 }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Phải ở trước CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -242,8 +264,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Ztudy.wsgi.application'
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -260,8 +280,6 @@ DATABASES = {
 }
 
 # Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     # {
     #     'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -278,13 +296,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_TZ = False
-
 USE_I18N = True
 
 # Static files (CSS, JavaScript, Images)
@@ -296,15 +310,13 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # django.contrib.sites
 SITE_ID = 1
 
 # Django Allauth settings
-ACCOUNT_LOGIN_METHODS = {"email"}  # Use Email / Password authentication
+ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_UNIQUE_EMAIL = True
@@ -329,10 +341,7 @@ GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_CALLBACK_URL = os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
 BASE_URL = os.getenv("BASE_URL")
-# django-allauth (social)
-# Authenticate if local account with this email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
-# Connect local account and social account if local account with that email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -365,13 +374,12 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
 }
 
-# settings.py
-LEADERBOARD_RESET_INTERVAL = 30  # Thời gian reset bảng xếp hạng (phút)
+LEADERBOARD_RESET_INTERVAL = 30
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['json', 'pickle']  # Chấp nhận cả JSON và pickle tạm thời
-CELERY_TASK_SERIALIZER = 'json'   # Vẫn sử dụng JSON cho task mới
-CELERY_RESULT_SERIALIZER = 'json' # Vẫn sử dụng JSON cho kết quả
+CELERY_ACCEPT_CONTENT = ['json', 'pickle']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
 CELERY_IMPORTS = (
     'scheduler.leaderboard_tasks',
@@ -394,7 +402,11 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{asctime} {levelname} {message}',
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
             'style': '{',
         },
     },
@@ -402,15 +414,33 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'level': 'INFO',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'dj_rest_auth': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        '': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
         },
     },
 }
+
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 CACHES = {

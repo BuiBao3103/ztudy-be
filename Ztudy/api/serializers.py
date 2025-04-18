@@ -98,30 +98,21 @@ class UserFavoriteVideoSerializer(FlexFieldsModelSerializer):
     name = serializers.CharField(required=False, allow_blank=True)
     author_name = serializers.CharField(required=False, allow_blank=True)
     author_url = serializers.CharField(required=False, allow_blank=True)
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        error_messages={
+            'does_not_exist': 'User with ID {pk_value} does not exist.',
+            'incorrect_type': 'Invalid user ID format.',
+            'required': 'User is required.'
+        }
+    )
 
     class Meta:
         model = UserFavoriteVideo
         fields = "__all__"
-        expandable_fields = {"user": UserSerializer}
-
-    def validate_youtube_url(self, value):
-        user = self.context['request'].user
-        if self.instance is None:
-            # Create
-            if UserFavoriteVideo.objects.filter(user=user, youtube_url=value).exists():
-                raise serializers.ValidationError(
-                    "You have already added this video to your favorites.")
-        else:
-            # Update
-            if (
-                self.instance.youtube_url != value and
-                UserFavoriteVideo.objects.filter(
-                    user=user, youtube_url=value).exists()
-            ):
-                raise serializers.ValidationError(
-                    "You have already added this video to your favorites.")
-        return value
-
+        expandable_fields = {"user": ("api.serializers.UserSerializer", {"read_only": True})}
+        
+    
 
 class AvatarUploadSerializer(serializers.Serializer):
     avatar = serializers.ImageField()
