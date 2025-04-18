@@ -75,6 +75,7 @@ class BackgroundVideoTypeRetrieveUpdateDestroy(BaseRetrieveUpdateDestroyView):
 class UserFavoriteVideoListCreate(FlexFieldsMixin, SwaggerExpandMixin, BaseListCreateView):
     queryset = UserFavoriteVideo.objects.all()
     serializer_class = UserFavoriteVideoSerializer
+    ordering_fields = ['id', 'created_at']
     filterset_fields = ['user']
     permit_list_expands = ['user']
 
