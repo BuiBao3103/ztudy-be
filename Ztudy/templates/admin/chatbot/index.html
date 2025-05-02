@@ -1,0 +1,55 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .chatbot-content {
+        padding: 20px;
+        margin: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    
+    .chatbot-header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .chatbot-placeholder {
+        background-color: #f9f9f9;
+        padding: 40px;
+        text-align: center;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'custom_admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; {% trans 'Chatbot' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="chatbot-content">
+        <div class="chatbot-header">
+            <h1>Chatbot</h1>
+            <p>Chào mừng đến với trang Chatbot của hệ thống quản trị.</p>
+        </div>
+        
+        <div class="chatbot-placeholder">
+            <h2>Đây là trang Chatbot</h2>
+            <p>Chức năng chatbot sẽ được phát triển trong tương lai.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+{{ block.super }}
+{% endblock %}
