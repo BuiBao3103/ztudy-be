@@ -1,55 +1,294 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_urls %}
+{% load i18n admin_urls static %}
 
-{% block extrastyle %}{{ block.super }}
+{% block extrastyle %}
+{{ block.super }}
 <style>
-    .chatbot-content {
-        padding: 20px;
-        margin: 20px;
-        background-color: #fff;
-        border-radius: 5px;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-    
-    .chatbot-header {
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .chatbot-placeholder {
-        background-color: #f9f9f9;
-        padding: 40px;
-        text-align: center;
-        border-radius: 5px;
-        margin-top: 20px;
-    }
+	#content {
+		display: flex;
+		flex-direction: column;
+		height: 95%;
+		overflow: hidden;
+	}
+
+	.chatbot-wrapper {
+		width: 100%;
+		height: 100%;
+	}
+
+	.chatbot-box {
+		background: var(--body-bg);
+		border-radius: 20px;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+		border: 1px solid var(--border-color);
+	}
+
+	.chatbot-header {
+		padding: 20px;
+		background: var(--secondary);
+		color: var(--primary-fg);
+		border-top-left-radius: 16px;
+		border-top-right-radius: 16px;
+		text-align: center;
+	}
+
+	.chatbot-header h1 {
+		margin: 0;
+		font-size: 24px;
+	}
+
+	.chatbot-header p {
+		margin: 5px 0 0;
+		font-size: 14px;
+		opacity: 0.9;
+	}
+
+	.chatbot-messages {
+		flex-grow: 1;
+		padding: 20px;
+		overflow-y: auto;
+		background-color: var(--darken-bg);
+	}
+
+	.message {
+		padding: 10px 15px;
+		margin-bottom: 10px;
+		border-radius: 10px;
+		max-width: 100%;
+		line-height: 1.4;
+		position: relative;
+		font-size: 14px;
+		color: var(--primary-fg);
+		animation: message-appear 0.3s ease-out forwards;
+	}
+
+	@keyframes message-appear {
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.message.bot {
+		background: var(--primary);
+		align-self: flex-start;
+	}
+
+	.message.user {
+		background: var(--secondary);
+		align-self: flex-end;
+		text-align: right;
+	}
+
+	.chatbot-input-area {
+		display: flex;
+		border-top: 1px solid var(--border-color);
+		padding: 15px;
+		background: var(--body-bg);
+	}
+
+	.chatbot-input-area input {
+		flex: 1;
+		padding: 10px 16px;
+		border: 1px solid var(--border-color);
+		border-radius: 10px;
+		outline: none;
+		font-size: 14px;
+		transition: border 0.2s;
+	}
+
+	.chatbot-input-area input:focus {
+		border-color: var(--primary);
+	}
+
+	.chatbot-input-area button {
+		background: var(--button-bg);
+		color: var(--button-fg);
+		border: none;
+		padding: 10px 20px;
+		margin-left: 10px;
+		cursor: pointer;
+		border-radius: 10px;
+		font-weight: 600;
+		transition: background 0.2s;
+	}
+
+	.chatbot-input-area button:hover {
+		background: var(--button-hover-bg);
+	}
+
+	.loading-indicator {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 6.5px;
+	}
+
+	.loading-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background-color: var(--primary-fg);
+		opacity: 0.7;
+		animation: loading-bounce 1.4s infinite ease-in-out both;
+	}
+
+	.loading-dot:nth-child(1) {
+		animation-delay: -0.32s;
+	}
+
+	.loading-dot:nth-child(2) {
+		animation-delay: -0.16s;
+	}
+
+	@keyframes loading-bounce {
+
+		0%,
+		80%,
+		100% {
+			transform: scale(0);
+		}
+
+		40% {
+			transform: scale(1);
+		}
+	}
 </style>
 {% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-<a href="{% url 'custom_admin:index' %}">{% trans 'Home' %}</a>
-&rsaquo; {% trans 'Chatbot' %}
+	<a href="{% url 'custom_admin:index' %}">{% trans 'Home' %}</a>
+	&rsaquo; {% trans 'Chatbot' %}
 </div>
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-    <div class="chatbot-content">
-        <div class="chatbot-header">
-            <h1>Chatbot</h1>
-            <p>Chào mừng đến với trang Chatbot của hệ thống quản trị.</p>
-        </div>
-        
-        <div class="chatbot-placeholder">
-            <h2>Đây là trang Chatbot</h2>
-            <p>Chức năng chatbot sẽ được phát triển trong tương lai.</p>
-        </div>
-    </div>
+<div class="chatbot-wrapper">
+	<div class="chatbot-box">
+		<div class="chatbot-header">
+			<h1>🤖 Trợ Lý Ảo</h1>
+			<p>Xin chào! Tôi ở đây để hỗ trợ bạn ✨</p>
+		</div>
+
+		<div class="chatbot-messages" id="chatbot-messages">
+			<div class="message bot">Chào bạn! Tôi có thể giúp gì hôm nay?</div>
+		</div>
+
+		<form class="chatbot-input-area" id="chatbot-form">
+			<input type="text" name="message" id="user-input" placeholder="Nhập tin nhắn..." autocomplete="off" />
+			<button type="submit">Gửi</button>
+		</form>
+	</div>
 </div>
 {% endblock %}
 
 {% block sidebar %}
 {{ block.super }}
+<script>
+	// Generate a random UUID for session tracking
+	function generateUUID() {
+		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0,
+				v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	}
+
+	const createLoadingIndicator = () => {
+		const messageElement = document.createElement('div');
+		messageElement.classList.add('message', 'bot');
+
+		const loadingContainer = document.createElement('div');
+		loadingContainer.classList.add('loading-indicator');
+
+		// Create the dots
+		for (let i = 0; i < 3; i++) {
+			const dot = document.createElement('div');
+			dot.classList.add('loading-dot');
+			loadingContainer.appendChild(dot);
+		}
+
+		messageElement.appendChild(loadingContainer);
+		messagesContainer.appendChild(messageElement);
+		messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		return messageElement;
+	};
+
+	const form = document.getElementById('chatbot-form');
+	const input = document.getElementById('user-input');
+	const messagesContainer = document.getElementById('chatbot-messages');
+
+	// Helper functions to add messages
+	const botMessage = (text) => {
+		const messageElement = document.createElement('div');
+		messageElement.classList.add('message', 'bot');
+		messageElement.style.animationDelay = '0.2s';
+		messageElement.textContent = text;
+		messagesContainer.appendChild(messageElement);
+		messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		return messageElement; // Return element for later updates
+	};
+
+	const userMessage = (text) => {
+		const messageElement = document.createElement('div');
+		messageElement.classList.add('message', 'user');
+		messageElement.style.animationDelay = '0.2s';
+		messageElement.textContent = text;
+		messagesContainer.appendChild(messageElement);
+		messagesContainer.scrollTop = messagesContainer.scrollHeight;
+	};
+
+	// Get or create session ID
+	if (localStorage.getItem('chatSessionId')) {
+		localStorage.removeItem('chatSessionId');
+	}
+	let sessionId = localStorage.getItem('chatSessionId');
+	if (!sessionId) {
+		sessionId = generateUUID();
+		localStorage.setItem('chatSessionId', sessionId);
+	}
+
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+
+		const message = input.value.trim();
+		if (!message) return;
+
+		userMessage(message);
+		input.value = '';
+
+		const loadingMessage = createLoadingIndicator();
+		setTimeout(() => {
+			loadingMessage.innerHTML = 'Đây là câu trả lời từ bot.';
+		}, 1500);
+		// try {
+		// 	const response = await fetch('', {
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json',
+		// 			'X-CSRFToken': '{{ csrf_token }}'
+		// 		},
+		// 		body: JSON.stringify({
+		// 			message: message,
+		// 			sessionId: sessionId
+		// 		})
+		// 	});
+
+		// 	if (!response.ok) {
+		// 		throw new Error('Network response was not ok');
+		// 	}
+
+		// 	const data = await response.json();
+		// 	loadingMessage.textContent = data.response;
+		// } catch (error) {
+		// 	console.error('Error:', error);
+		// 	loadingMessage.textContent = 'Có lỗi xảy ra. Vui lòng thử lại.';
+		// }
+	});
+</script>
 {% endblock %}
