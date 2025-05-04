@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -36,24 +37,25 @@ class GoogleLoginCallback(APIView):
             code = request.GET.get('code')
             if not code:
                 logger.error("No code received in Google callback")
-                return redirect(f"{settings.FRONTEND_URL}?error=no_code")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=no_code")
 
             # Exchange code for tokens
             token_response = self.get_google_token(code)
             if not token_response:
                 logger.error("Failed to get Google token")
-                return redirect(f"{settings.FRONTEND_URL}?error=token_error")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=token_error")
 
             # Get user info from Google
-            user_info = self.get_google_user_info(token_response.get('access_token'))
+            user_info = self.get_google_user_info(
+                token_response.get('access_token'))
             if not user_info:
                 logger.error("Failed to get Google user info")
-                return redirect(f"{settings.FRONTEND_URL}?error=user_info_error")
+                return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=user_info_error")
 
             # Create or update user
             User = get_user_model()
             email = user_info['email']
-            
+
             try:
                 # Try to get existing user by email
                 user = User.objects.get(email=email)
@@ -66,7 +68,7 @@ class GoogleLoginCallback(APIView):
                     avatar="https://res.cloudinary.com/dloeqfbwm/image/upload/v1742014468/ztudy/avatars/default_avatar.jpg"
                 )
                 logger.info(f"Created new user: {email}")
-                
+
                 # Create EmailAddress record
                 from allauth.account.models import EmailAddress
                 EmailAddress.objects.create(
@@ -90,7 +92,8 @@ class GoogleLoginCallback(APIView):
             # Process login with specific backend
             if api_settings.SESSION_LOGIN:
                 from allauth.account.auth_backends import AuthenticationBackend
-                django_login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
+                django_login(
+                    request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
                 logger.info(f"User logged in via session: {email}")
 
             # Generate JWT tokens
@@ -98,25 +101,25 @@ class GoogleLoginCallback(APIView):
             logger.info(f"Generated JWT tokens for user: {email}")
 
             # Create redirect response
-            redirect_response = redirect(settings.FRONTEND_URL)
-            
+            redirect_response = redirect(f"{settings.FRONTEND_URL}/login-google?status=success")
+
             # Log cookie settings before setting
             logger.info(f"Cookie settings - Domain: {settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']}, "
-                       f"Secure: {settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']}, "
-                       f"SameSite: {settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']}, "
-                       f"Path: {settings.SIMPLE_JWT['AUTH_COOKIE_PATH']}")
-            
+                        f"Secure: {settings.SIMPLE_JWT['AUTH_COOKIE_SECURE']}, "
+                        f"SameSite: {settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']}, "
+                        f"Path: {settings.SIMPLE_JWT['AUTH_COOKIE_PATH']}")
+
             # Use dj-rest-auth's set_jwt_cookies function to set cookies properly
             set_jwt_cookies(redirect_response, access_token, refresh_token)
-            
+
             # Log the response headers for debugging
             logger.info(f"Response headers: {redirect_response.headers}")
-            
+
             return redirect_response
 
         except Exception as e:
             logger.exception("Error in Google callback")
-            return redirect(f"{settings.FRONTEND_URL}?error=login_failed")
+            return redirect(f"{settings.FRONTEND_URL}/login-google?status=failed&error=login_failed")
 
     def get_google_token(self, code):
         try:
@@ -128,7 +131,8 @@ class GoogleLoginCallback(APIView):
                 'redirect_uri': settings.GOOGLE_OAUTH_CALLBACK_URL,
                 'grant_type': 'authorization_code'
             }
-            logger.info(f"Requesting Google token with redirect_uri: {settings.GOOGLE_OAUTH_CALLBACK_URL}")
+            logger.info(
+                f"Requesting Google token with redirect_uri: {settings.GOOGLE_OAUTH_CALLBACK_URL}")
             response = requests.post(token_url, data=data)
             if response.status_code != 200:
                 logger.error(f"Google token error: {response.text}")
