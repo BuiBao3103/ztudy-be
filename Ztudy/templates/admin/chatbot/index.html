@@ -190,7 +190,6 @@
 {% block sidebar %}
 {{ block.super }}
 <script>
-	// Generate a random UUID for session tracking
 	function generateUUID() {
 		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
 			var r = Math.random() * 16 | 0,
@@ -206,7 +205,6 @@
 		const loadingContainer = document.createElement('div');
 		loadingContainer.classList.add('loading-indicator');
 
-		// Create the dots
 		for (let i = 0; i < 3; i++) {
 			const dot = document.createElement('div');
 			dot.classList.add('loading-dot');
@@ -223,7 +221,6 @@
 	const input = document.getElementById('user-input');
 	const messagesContainer = document.getElementById('chatbot-messages');
 
-	// Helper functions to add messages
 	const botMessage = (text) => {
 		const messageElement = document.createElement('div');
 		messageElement.classList.add('message', 'bot');
@@ -231,7 +228,7 @@
 		messageElement.textContent = text;
 		messagesContainer.appendChild(messageElement);
 		messagesContainer.scrollTop = messagesContainer.scrollHeight;
-		return messageElement; // Return element for later updates
+		return messageElement;
 	};
 
 	const userMessage = (text) => {
@@ -243,7 +240,6 @@
 		messagesContainer.scrollTop = messagesContainer.scrollHeight;
 	};
 
-	// Get or create session ID
 	if (localStorage.getItem('chatSessionId')) {
 		localStorage.removeItem('chatSessionId');
 	}
@@ -263,32 +259,32 @@
 		input.value = '';
 
 		const loadingMessage = createLoadingIndicator();
-		setTimeout(() => {
-			loadingMessage.innerHTML = 'Đây là câu trả lời từ bot.';
-		}, 1500);
-		// try {
-		// 	const response = await fetch('', {
-		// 		method: 'POST',
-		// 		headers: {
-		// 			'Content-Type': 'application/json',
-		// 			'X-CSRFToken': '{{ csrf_token }}'
-		// 		},
-		// 		body: JSON.stringify({
-		// 			message: message,
-		// 			sessionId: sessionId
-		// 		})
-		// 	});
+		// setTimeout(() => {
+		//	loadingMessage.innerHTML = 'Đây là câu trả lời từ bot.';
+		// }, 1500);
+		try {
+		const response = await fetch('http://localhost:5679/webhook/chat', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-CSRFToken': '{{ csrf_token }}'
+			},
+			body: JSON.stringify({
+				message: message,
+				sessionId: sessionId
+			})
+		});
 
-		// 	if (!response.ok) {
-		// 		throw new Error('Network response was not ok');
-		// 	}
+		if (!response.ok) {
+			throw new Error('Network response was not ok');
+		}
 
-		// 	const data = await response.json();
-		// 	loadingMessage.textContent = data.response;
-		// } catch (error) {
-		// 	console.error('Error:', error);
-		// 	loadingMessage.textContent = 'Có lỗi xảy ra. Vui lòng thử lại.';
-		// }
+		const data = await response.json();
+		loadingMessage.textContent = data.response;
+		} catch (error) {
+		console.error('Error:', error);
+		loadingMessage.textContent = 'Có lỗi xảy ra. Vui lòng thử lại.';
+		}
 	});
 </script>
 {% endblock %}
